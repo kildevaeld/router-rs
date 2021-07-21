@@ -22,6 +22,7 @@ pub struct HttpRoute<H> {
     pub handle: H,
 }
 
+#[derive(Default)]
 pub struct RouteParams {
     inner: BTreeMap<String, String>,
 }
