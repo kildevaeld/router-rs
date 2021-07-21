@@ -5,14 +5,15 @@ use alloc::{
     string::ToString,
     vec::{IntoIter, Vec},
 };
+use core::slice::Iter;
 #[cfg(feature = "std")]
 use std::{
     borrow::Cow,
     string::ToString,
     vec::{IntoIter, Vec},
 };
-
 #[derive(Debug, Clone, PartialEq)]
+
 pub enum Segment<'a> {
     Constant(Cow<'a, str>),
     Parameter(Cow<'a, str>),
@@ -109,11 +110,11 @@ impl<'a> Route<'a> {
 //     }
 // }
 
-// impl<'a> AsSegments<'a> for &'a str {
-//     type Error = ParseError;
-//     type Iter = Iter<'a, Segment<'a>>;
-//     fn as_segments(&'a self) -> Result<Self::Iter, Self::Error> {
-//         let segments = parse(self)?;
-//         Ok(segments.iter())
-//     }
-// }
+impl<'a> AsSegments<'a> for &'a str {
+    type Error = ParseError;
+    type Iter = IntoIter<Segment<'a>>;
+    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+        let segments = parse(self)?;
+        Ok(segments.into_iter())
+    }
+}
