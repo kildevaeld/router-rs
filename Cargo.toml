@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 id-arena =  { version = "2" }
+http = { version = "0.2", optional = true }
 
 [dev-dependencies]
 criterion = "0.3"

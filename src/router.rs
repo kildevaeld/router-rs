@@ -49,10 +49,7 @@ pub struct Router<H> {
     root: NodeId<H>,
 }
 
-impl<H> Router<H>
-where
-    H: 'static + core::fmt::Debug,
-{
+impl<H> Router<H> {
     pub fn new() -> Router<H> {
         let mut arena = Arena::new();
         let root = arena.alloc(Node::default());
@@ -223,7 +220,7 @@ mod test {
     pub use super::*;
 
     #[cfg(not(feature = "std"))]
-    use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
+    use alloc::collections::BTreeMap;
     #[cfg(feature = "std")]
     use std::collections::BTreeMap;
 

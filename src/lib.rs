@@ -15,3 +15,9 @@ pub use self::{
     route::*,
     router::*,
 };
+
+#[cfg(feature = "http")]
+mod http_ext;
+
+#[cfg(feature = "http")]
+pub use http_ext::*;
