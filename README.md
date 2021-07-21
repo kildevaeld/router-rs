@@ -1,6 +1,6 @@
 ## Router
 
-```
+```rust
 
 let mut router = Router::new();
 
