@@ -1,4 +1,4 @@
-use super::{Params, Segment};
+use super::{AsSegments, Params, Segment};
 #[cfg(not(feature = "std"))]
 use alloc::{
     borrow::Cow,
@@ -59,10 +59,16 @@ where
         Router { arena, root }
     }
 
-    pub fn register(&mut self, path: &[Segment], handle: H) -> &mut Self {
+    pub fn register<'a, S: AsSegments<'a> + 'a>(
+        &mut self,
+        path: S,
+        handle: H,
+    ) -> Result<&mut Self, S::Error> {
         let mut current = self.root;
 
-        'path: for segment in path.iter() {
+        let segments = path.as_segments()?;
+
+        'path: for segment in segments {
             //
             match segment {
                 Segment::Constant(path) => {
@@ -115,7 +121,7 @@ where
 
         self.arena[current].handle.as_mut().unwrap().push(handle);
 
-        self
+        Ok(self)
     }
 
     pub fn find<'a: 'b, 'b, 'c, P: Params<'b>>(
@@ -218,13 +224,8 @@ mod test {
 
     #[cfg(not(feature = "std"))]
     use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
-    use core::ops::Range;
     #[cfg(feature = "std")]
-    use std::{
-        borrow::Cow,
-        collections::{BTreeMap, HashMap},
-        vec::Vec,
-    };
+    use std::collections::BTreeMap;
 
     #[cfg(not(feature = "std"))]
     use alloc::vec;
@@ -235,7 +236,7 @@ mod test {
     fn test() {
         let mut router = Router::new();
 
-        router.register(&[], "root");
+        router.register(&[], "root").unwrap();
 
         assert_eq!(
             router.find("", &mut BTreeMap::default()),
@@ -253,6 +254,7 @@ mod test {
 
         router
             .register(&[Segment::Constant("path".into())], "/path")
+            .unwrap()
             .register(
                 &[
                     Segment::Constant("path".into()),
@@ -260,13 +262,15 @@ mod test {
                 ],
                 "/path/:id",
             )
+            .unwrap()
             .register(
                 &[
                     Segment::Constant("statics".into()),
                     Segment::Star("filename".into()),
                 ],
                 "/statics/*filename",
-            );
+            )
+            .unwrap();
 
         assert_eq!(
             router.find("path", &mut BTreeMap::default()),

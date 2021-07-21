@@ -1,6 +1,8 @@
 use super::{router::next_segment, Segment};
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
+#[cfg(feature = "std")]
+use core::fmt;
 use core::ops::Range;
 #[cfg(feature = "std")]
 use std::{
@@ -31,6 +33,19 @@ pub enum ParseError {
     MissingVarName { pos: Range<usize> },
     CatchAllNotLast,
 }
+
+#[cfg(feature = "std")]
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::MissingVarName { .. } => write!(f, "missing parameter name"),
+            ParseError::CatchAllNotLast => write!(f, "catch all cannot be last"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ParseError {}
 
 pub fn parse<'a>(mut path: &'a str) -> Result<Vec<Segment<'a>>, ParseError> {
     if !path.is_empty() && path.as_bytes()[0] == b'/' {

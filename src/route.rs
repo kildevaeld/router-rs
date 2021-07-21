@@ -1,8 +1,16 @@
 use super::parser::*;
 #[cfg(not(feature = "std"))]
-use alloc::{borrow::Cow, string::ToString, vec::Vec};
+use alloc::{
+    borrow::Cow,
+    string::ToString,
+    vec::{IntoIter, Vec},
+};
 #[cfg(feature = "std")]
-use std::{borrow::Cow, string::ToString, vec::Vec};
+use std::{
+    borrow::Cow,
+    string::ToString,
+    vec::{IntoIter, Vec},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Segment<'a> {
@@ -20,6 +28,52 @@ impl<'a> Segment<'a> {
         }
     }
 }
+
+pub trait AsSegments<'a> {
+    type Error;
+    type Iter: Iterator<Item = Segment<'a>>;
+    fn as_segments(self) -> Result<Self::Iter, Self::Error>;
+}
+
+impl<'a> AsSegments<'a> for Vec<Segment<'a>> {
+    type Error = core::convert::Infallible;
+    type Iter = IntoIter<Segment<'a>>;
+    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+        Ok(self.into_iter())
+    }
+}
+
+impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>] {
+    type Error = core::convert::Infallible;
+    type Iter = IntoIter<Segment<'a>>;
+    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+        Ok(self.to_vec().into_iter())
+    }
+}
+
+macro_rules! slice_impl {
+    ($i: literal) => {
+        impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>; $i] {
+            type Error = core::convert::Infallible;
+            type Iter = IntoIter<Segment<'a>>;
+            fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+                Ok(self.to_vec().into_iter())
+            }
+        }
+    };
+    ($i: literal, $($next: literal),*) => {
+        slice_impl!($($next),*);
+        impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>; $i] {
+            type Error = core::convert::Infallible;
+            type Iter = IntoIter<Segment<'a>>;
+            fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+                Ok(self.to_vec().into_iter())
+            }
+        }
+    };
+}
+
+slice_impl!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Route<'a> {
@@ -46,3 +100,20 @@ impl<'a> Route<'a> {
         }
     }
 }
+
+// impl<'a> AsSegments<'a> for Route<'a> {
+//     type Error = std::convert::Infallible;
+//     type Iter = Iter<'a, Segment<'a>>;
+//     fn as_segments(&'a self) -> Result<Self::Iter, Self::Error> {
+//         Ok(self.segments.iter())
+//     }
+// }
+
+// impl<'a> AsSegments<'a> for &'a str {
+//     type Error = ParseError;
+//     type Iter = Iter<'a, Segment<'a>>;
+//     fn as_segments(&'a self) -> Result<Self::Iter, Self::Error> {
+//         let segments = parse(self)?;
+//         Ok(segments.iter())
+//     }
+// }
