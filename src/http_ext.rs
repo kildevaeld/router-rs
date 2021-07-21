@@ -17,7 +17,7 @@ use std::{
     vec::{IntoIter, Vec},
 };
 
-struct HttpRoute<H> {
+pub struct HttpRoute<H> {
     pub method: Option<Method>,
     pub handle: H,
 }
