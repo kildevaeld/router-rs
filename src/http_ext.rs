@@ -18,8 +18,8 @@ use std::{
 };
 
 struct HttpRoute<H> {
-    method: Option<Method>,
-    handle: H,
+    pub method: Option<Method>,
+    pub handle: H,
 }
 
 pub struct RouteParams {
