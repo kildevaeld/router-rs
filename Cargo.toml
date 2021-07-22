@@ -13,7 +13,7 @@ http = { version = "0.2", optional = true }
 criterion = "0.3"
 
 [features]
-default = [ "std" ]
+default = [ "std" , "http"]
 std = []
 
 [[bench]]

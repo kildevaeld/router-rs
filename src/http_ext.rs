@@ -11,10 +11,9 @@ use alloc::{
 #[cfg(feature = "std")]
 use std::{
     borrow::Cow,
-    boxed::Box,
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     string::{String, ToString},
-    vec::{IntoIter, Vec},
+    vec::Vec,
 };
 
 pub struct HttpRoute<H> {
@@ -22,9 +21,15 @@ pub struct HttpRoute<H> {
     pub handle: H,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RouteParams {
     inner: BTreeMap<String, String>,
+}
+
+impl RouteParams {
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.inner.get(key).map(|m| m.as_str())
+    }
 }
 
 impl<'a> Params<'a> for RouteParams {

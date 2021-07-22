@@ -5,7 +5,6 @@ use alloc::{
     string::ToString,
     vec::{IntoIter, Vec},
 };
-use core::slice::Iter;
 #[cfg(feature = "std")]
 use std::{
     borrow::Cow,
