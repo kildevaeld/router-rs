@@ -16,6 +16,7 @@ use std::{
     vec::Vec,
 };
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct HttpRoute<H> {
     pub method: Option<Method>,
     pub handle: H,
