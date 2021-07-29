@@ -121,6 +121,12 @@ impl<H> Router<H> {
         Ok(self)
     }
 
+    pub fn clear(&mut self) {
+        self.arena = Arena::new();
+        let root = self.arena.alloc(Node::default());
+        self.root = root;
+    }
+
     pub fn find<'a: 'b, 'b, 'c, P: Params<'b>>(
         &'a self,
         path: &'b str,
