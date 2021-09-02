@@ -2,12 +2,14 @@ use super::parser::*;
 #[cfg(not(feature = "std"))]
 use alloc::{
     borrow::Cow,
+    fmt,
     string::ToString,
     vec::{IntoIter, Vec},
 };
 #[cfg(feature = "std")]
 use std::{
     borrow::Cow,
+    fmt,
     string::ToString,
     vec::{IntoIter, Vec},
 };
@@ -37,6 +39,50 @@ impl<'a> Segment<'a> {
 
     pub fn star(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
         Segment::Star(s.into())
+    }
+}
+
+impl<'a> fmt::Display for Segment<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Segment::Constant(c) => f.write_str(c),
+            Segment::Parameter(p) => write!(f, ":{}", p),
+            Segment::Star(s) => write!(f, "*{}", s),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Segments<'a>(pub(crate) Vec<Segment<'a>>);
+
+impl<'a> From<Segments<'a>> for Vec<Segment<'a>> {
+    fn from(segs: Segments<'a>) -> Self {
+        segs.0
+    }
+}
+
+impl<'a> fmt::Display for Segments<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for v in self.0.iter() {
+            write!(f, "/{}", v)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> IntoIterator for Segments<'a> {
+    type Item = Segment<'a>;
+    type IntoIter = IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> AsSegments<'a> for Segments<'a> {
+    type Error = std::convert::Infallible;
+    type Iter = IntoIter<Segment<'a>>;
+    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+        Ok(self.0.into_iter())
     }
 }
 

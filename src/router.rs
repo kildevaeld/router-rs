@@ -1,4 +1,4 @@
-use super::{AsSegments, Params, Segment};
+use super::{AsSegments, Params, Segment, Segments};
 #[cfg(not(feature = "std"))]
 use alloc::{
     borrow::Cow,
@@ -29,7 +29,7 @@ struct Node<H> {
     handle: Option<Vec<H>>,
     catchall: Option<Named<Index>>,
     wildcard: Option<Named<Index>>,
-    segments: Vec<Segment<'static>>,
+    segments: Option<Segments<'static>>,
 }
 
 impl<H> Default for Node<H> {
@@ -39,7 +39,7 @@ impl<H> Default for Node<H> {
             handle: None,
             catchall: None,
             wildcard: None,
-            segments: Vec::new(),
+            segments: None,
         }
     }
 }
@@ -57,18 +57,18 @@ impl<H> Router<H> {
         Router { arena, root }
     }
 
-    pub fn routes<'a>(&'a self) -> impl Iterator<Item = &'a Vec<Segment<'static>>> {
+    pub fn routes<'a>(&'a self) -> impl Iterator<Item = &'a Segments<'static>> {
         self.arena
             .iter()
-            .filter(|m| m.1.handle.is_some())
-            .map(|m| &m.1.segments)
+            .filter(|m| m.1.segments.is_some())
+            .map(|m| m.1.segments.as_ref().unwrap())
     }
 
-    fn into_routes(self) -> impl Iterator<Item = (Vec<Segment<'static>>, Vec<H>)> {
+    fn into_routes(self) -> impl Iterator<Item = (Segments<'static>, Vec<H>)> {
         self.arena
             .into_iter()
-            .filter(|m| m.handle.is_some())
-            .map(|m| (m.segments, m.handle.unwrap()))
+            .filter(|m| m.segments.is_some())
+            .map(|m| (m.segments.unwrap(), m.handle.unwrap()))
     }
 
     pub fn register<'a, S: AsSegments<'a> + 'a>(
@@ -134,7 +134,7 @@ impl<H> Router<H> {
             self.arena[current].handle = Some(Vec::default());
         }
 
-        self.arena[current].segments = segments;
+        self.arena[current].segments = Some(Segments(segments));
         self.arena[current].handle.as_mut().unwrap().push(handle);
 
         Ok(self)

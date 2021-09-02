@@ -47,7 +47,6 @@ pub trait RouterExt<'a, H: 'a> {
 }
 
 impl<'a, H: 'a> RouterExt<'a, H> for Router<HttpRoute<H>> {
-    // type Iter = Box<dyn Iterator<Item = &'a H> + 'a>;
     type Iter = MatchRequestIter<'a, H>;
     fn match_request<'c, B>(&'c self, req: &'a Request<B>) -> Option<Self::Iter>
     where
