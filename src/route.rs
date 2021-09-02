@@ -12,7 +12,6 @@ use std::{
     vec::{IntoIter, Vec},
 };
 #[derive(Debug, Clone, PartialEq)]
-
 pub enum Segment<'a> {
     Constant(Cow<'a, str>),
     Parameter(Cow<'a, str>),
@@ -26,6 +25,18 @@ impl<'a> Segment<'a> {
             Segment::Parameter(param) => Segment::Parameter(param.to_string().into()),
             Segment::Star(star) => Segment::Star(star.to_string().into()),
         }
+    }
+
+    pub fn constant(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
+        Segment::Constant(s.into())
+    }
+
+    pub fn parameter(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
+        Segment::Parameter(s.into())
+    }
+
+    pub fn star(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
+        Segment::Star(s.into())
     }
 }
 

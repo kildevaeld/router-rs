@@ -6,15 +6,16 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-id-arena =  { version = "2" }
 http = { version = "0.2", optional = true }
+generational-arena = { version = "0.2", default-features = false }
+
 
 [dev-dependencies]
 criterion = "0.3"
 
 [features]
-default = [ "std" , "http"]
-std = []
+default = [ "std" ]
+std = ["generational-arena/std"]
 
 [[bench]]
 name = "benchmark"

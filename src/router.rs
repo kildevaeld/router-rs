@@ -7,7 +7,8 @@ use alloc::{
     vec::Vec,
 };
 use core::ops::Range;
-use id_arena::{Arena, Id};
+// use id_arena::{Arena, Id};
+use generational_arena::{Arena, Index};
 #[cfg(feature = "std")]
 use std::{
     borrow::Cow,
@@ -15,8 +16,6 @@ use std::{
     string::{String, ToString},
     vec::Vec,
 };
-
-type NodeId<H> = Id<Node<H>>;
 
 #[derive(Debug, Clone)]
 struct Named<H> {
@@ -26,10 +25,11 @@ struct Named<H> {
 
 #[derive(Debug, Clone)]
 struct Node<H> {
-    constants: HashMap<String, NodeId<H>>,
+    constants: HashMap<String, Index>,
     handle: Option<Vec<H>>,
-    catchall: Option<Named<NodeId<H>>>,
-    wildcard: Option<Named<NodeId<H>>>,
+    catchall: Option<Named<Index>>,
+    wildcard: Option<Named<Index>>,
+    segments: Vec<Segment<'static>>,
 }
 
 impl<H> Default for Node<H> {
@@ -39,6 +39,7 @@ impl<H> Default for Node<H> {
             handle: None,
             catchall: None,
             wildcard: None,
+            segments: Vec::new(),
         }
     }
 }
@@ -46,14 +47,28 @@ impl<H> Default for Node<H> {
 #[derive(Debug, Clone)]
 pub struct Router<H> {
     arena: Arena<Node<H>>,
-    root: NodeId<H>,
+    root: Index,
 }
 
 impl<H> Router<H> {
     pub fn new() -> Router<H> {
         let mut arena = Arena::new();
-        let root = arena.alloc(Node::default());
+        let root = arena.insert(Node::default());
         Router { arena, root }
+    }
+
+    pub fn routes<'a>(&'a self) -> impl Iterator<Item = &'a Vec<Segment<'static>>> {
+        self.arena
+            .iter()
+            .filter(|m| m.1.handle.is_some())
+            .map(|m| &m.1.segments)
+    }
+
+    fn into_routes(self) -> impl Iterator<Item = (Vec<Segment<'static>>, Vec<H>)> {
+        self.arena
+            .into_iter()
+            .filter(|m| m.handle.is_some())
+            .map(|m| (m.segments, m.handle.unwrap()))
     }
 
     pub fn register<'a, S: AsSegments<'a> + 'a>(
@@ -63,9 +78,12 @@ impl<H> Router<H> {
     ) -> Result<&mut Self, S::Error> {
         let mut current = self.root;
 
-        let segments = path.as_segments()?;
+        let segments = path
+            .as_segments()?
+            .map(|m| m.to_static())
+            .collect::<Vec<_>>();
 
-        'path: for segment in segments {
+        'path: for segment in &segments {
             //
             match segment {
                 Segment::Constant(path) => {
@@ -75,7 +93,7 @@ impl<H> Router<H> {
                         continue 'path;
                     }
 
-                    let node = self.arena.alloc(Node::default());
+                    let node = self.arena.insert(Node::default());
                     self.arena[current].constants.insert(path.to_string(), node);
                     current = node;
                 }
@@ -86,7 +104,7 @@ impl<H> Router<H> {
                         current = wildcard.handle;
                         continue 'path;
                     } else {
-                        let node = self.arena.alloc(Node::default());
+                        let node = self.arena.insert(Node::default());
                         self.arena[current].wildcard = Some(Named {
                             name: param.to_string(),
                             handle: node,
@@ -100,7 +118,7 @@ impl<H> Router<H> {
                     if let Some(star) = &self.arena[current].catchall {
                         current = star.handle;
                     } else {
-                        let node = self.arena.alloc(Node::default());
+                        let node = self.arena.insert(Node::default());
                         self.arena[current].catchall = Some(Named {
                             name: star.to_string(),
                             handle: node,
@@ -116,6 +134,7 @@ impl<H> Router<H> {
             self.arena[current].handle = Some(Vec::default());
         }
 
+        self.arena[current].segments = segments;
         self.arena[current].handle.as_mut().unwrap().push(handle);
 
         Ok(self)
@@ -123,8 +142,33 @@ impl<H> Router<H> {
 
     pub fn clear(&mut self) {
         self.arena = Arena::new();
-        let root = self.arena.alloc(Node::default());
+        let root = self.arena.insert(Node::default());
         self.root = root;
+    }
+
+    pub fn extend(&mut self, router: Router<H>) {
+        for route in router.into_routes() {
+            for handle in route.1 {
+                self.register(route.0.clone(), handle).expect("register");
+            }
+        }
+    }
+
+    pub fn mount<'a, S: AsSegments<'a>>(
+        &mut self,
+        path: S,
+        router: Router<H>,
+    ) -> Result<(), S::Error> {
+        let segments = path.as_segments()?.collect::<Vec<_>>();
+        for route in router.into_routes() {
+            let mut segments = segments.clone();
+            segments.extend(route.0);
+            for handle in route.1 {
+                self.register(segments.clone(), handle).expect("register");
+            }
+        }
+
+        Ok(())
     }
 
     pub fn find<'a: 'b, 'b, 'c, P: Params<'b>>(
@@ -138,9 +182,8 @@ impl<H> Router<H> {
         }
         let path_len = path.char_indices().count();
         let mut current_node = self.root;
-        let mut catch_all: Option<&'a Named<NodeId<H>>> = None;
+        let mut catch_all: Option<&'a Named<Index>> = None;
         let mut from = 0;
-        // let mut params = HashMap::new();
         loop {
             let start_index = from;
             let segment = next_segment(path, path_len, &mut from);
@@ -290,6 +333,64 @@ mod test {
         assert_eq!(
             router.find("/statics/filename.png", &mut BTreeMap::default()),
             Some(&vec!["/statics/*filename"])
+        );
+    }
+
+    #[test]
+    fn test_extend() {
+        let mut router1 = Router::new();
+
+        router1
+            .register(&[Segment::constant("statics")], "statics")
+            .expect("statics");
+
+        router1
+            .register(
+                &[Segment::constant("statics"), Segment::constant("something")],
+                "",
+            )
+            .expect("something");
+
+        let mut router2 = Router::new();
+
+        router2
+            .register(&[Segment::constant("statics")], "statics2")
+            .expect("statics");
+
+        router1.extend(router2);
+
+        assert_eq!(
+            router1.find("/statics", &mut BTreeMap::default()),
+            Some(&vec!["statics", "statics2"])
+        );
+    }
+
+    #[test]
+    fn test_mount() {
+        let mut router1 = Router::new();
+
+        router1
+            .register(&[Segment::constant("statics")], "statics")
+            .expect("statics");
+
+        router1
+            .register(
+                &[Segment::constant("statics"), Segment::constant("something")],
+                "",
+            )
+            .expect("something");
+
+        let mut router2 = Router::new();
+
+        router2
+            .register(&[Segment::constant("statics")], "statics2")
+            .expect("statics");
+
+        router1.mount("api", router2).expect("mount");
+
+        assert_eq!(
+            router1.find("/api/statics", &mut BTreeMap::default()),
+            Some(&vec!["statics2"])
         );
     }
 }
