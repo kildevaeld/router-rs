@@ -79,7 +79,7 @@ impl<'a> IntoIterator for Segments<'a> {
 }
 
 impl<'a> AsSegments<'a> for Segments<'a> {
-    type Error = std::convert::Infallible;
+    type Error = core::convert::Infallible;
     type Iter = IntoIter<Segment<'a>>;
     fn as_segments(self) -> Result<Self::Iter, Self::Error> {
         Ok(self.0.into_iter())
