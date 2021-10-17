@@ -16,6 +16,16 @@ use std::{
     vec::Vec,
 };
 
+pub trait IntoRoutes<'a, H> {
+    fn into_routes(self) -> Vec<(Segments<'a>, Vec<H>)>;
+}
+
+impl<H> IntoRoutes<'static, H> for Vec<(Segments<'static>, Vec<H>)> {
+    fn into_routes(self) -> Vec<(Segments<'static>, Vec<H>)> {
+        self
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Named<H> {
     name: String,
@@ -61,13 +71,6 @@ impl<H> Router<H> {
             .iter()
             .filter(|m| m.1.segments.is_some())
             .map(|m| m.1.segments.as_ref().unwrap())
-    }
-
-    pub fn into_routes(self) -> impl Iterator<Item = (Segments<'static>, Vec<H>)> {
-        self.arena
-            .into_iter()
-            .filter(|m| m.segments.is_some())
-            .map(|m| (m.segments.unwrap(), m.handle.unwrap()))
     }
 
     pub fn register<'a, S: AsSegments<'a> + 'a>(
@@ -145,7 +148,7 @@ impl<H> Router<H> {
         self.root = root;
     }
 
-    pub fn extend(&mut self, router: Router<H>) {
+    pub fn extend<'a, R: IntoRoutes<'a, H>>(&mut self, router: R) {
         for route in router.into_routes() {
             for handle in route.1 {
                 self.register(route.0.clone(), handle).expect("register");
@@ -153,10 +156,10 @@ impl<H> Router<H> {
         }
     }
 
-    pub fn mount<'a, S: AsSegments<'a>>(
+    pub fn mount<'a, S: AsSegments<'a>, R: IntoRoutes<'a, H>>(
         &mut self,
         path: S,
-        router: Router<H>,
+        router: R,
     ) -> Result<(), S::Error> {
         let segments = path.as_segments()?.collect::<Vec<_>>();
         for route in router.into_routes() {
@@ -221,6 +224,16 @@ impl<H> Router<H> {
                 return None;
             }
         }
+    }
+}
+
+impl<'a, H> IntoRoutes<'a, H> for Router<H> {
+    fn into_routes(self) -> Vec<(Segments<'a>, Vec<H>)> {
+        self.arena
+            .into_iter()
+            .filter(|m| m.segments.is_some())
+            .map(|m| (m.segments.unwrap(), m.handle.unwrap()))
+            .collect()
     }
 }
 
