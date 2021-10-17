@@ -7,7 +7,6 @@ use alloc::{
     vec::Vec,
 };
 use core::ops::Range;
-// use id_arena::{Arena, Id};
 use generational_arena::{Arena, Index};
 #[cfg(feature = "std")]
 use std::{
@@ -64,7 +63,7 @@ impl<H> Router<H> {
             .map(|m| m.1.segments.as_ref().unwrap())
     }
 
-    fn into_routes(self) -> impl Iterator<Item = (Segments<'static>, Vec<H>)> {
+    pub fn into_routes(self) -> impl Iterator<Item = (Segments<'static>, Vec<H>)> {
         self.arena
             .into_iter()
             .filter(|m| m.segments.is_some())
