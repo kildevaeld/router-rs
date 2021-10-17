@@ -26,6 +26,14 @@ impl<H> IntoRoutes<'static, H> for Vec<(Segments<'static>, Vec<H>)> {
     }
 }
 
+impl<'a, H> IntoRoutes<'a, H> for (Segments<'a>, Vec<H>) {
+    fn into_routes(self) -> Vec<(Segments<'a>, Vec<H>)> {
+        let mut vec = Vec::default();
+        vec.push(self);
+        vec
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Named<H> {
     name: String,
