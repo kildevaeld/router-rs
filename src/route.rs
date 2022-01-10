@@ -55,6 +55,12 @@ impl<'a> fmt::Display for Segment<'a> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Segments<'a>(pub(crate) Vec<Segment<'a>>);
 
+impl<'a> Segments<'a> {
+    pub fn new(segments: Vec<Segment<'a>>) -> Segments<'a> {
+        Segments(segments)
+    }
+}
+
 impl<'a> From<Segments<'a>> for Vec<Segment<'a>> {
     fn from(segs: Segments<'a>) -> Self {
         segs.0
