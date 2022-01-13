@@ -3,14 +3,14 @@ use super::parser::*;
 use alloc::{
     borrow::Cow,
     fmt,
-    string::ToString,
+    string::{String, ToString},
     vec::{IntoIter, Vec},
 };
 #[cfg(feature = "std")]
 use std::{
     borrow::Cow,
     fmt,
-    string::ToString,
+    string::{String, ToString},
     vec::{IntoIter, Vec},
 };
 #[derive(Debug, Clone, PartialEq)]
@@ -173,6 +173,15 @@ impl<'a> Route<'a> {
 // }
 
 impl<'a> AsSegments<'a> for &'a str {
+    type Error = ParseError;
+    type Iter = IntoIter<Segment<'a>>;
+    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+        let segments = parse(self)?;
+        Ok(segments.into_iter())
+    }
+}
+
+impl<'a> AsSegments<'a> for &'a String {
     type Error = ParseError;
     type Iter = IntoIter<Segment<'a>>;
     fn as_segments(self) -> Result<Self::Iter, Self::Error> {
