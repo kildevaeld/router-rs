@@ -1,3 +1,5 @@
+use crate::{Params, Segment};
+
 use super::parser::*;
 #[cfg(not(feature = "std"))]
 use alloc::{
@@ -7,136 +9,7 @@ use alloc::{
     vec::{IntoIter, Vec},
 };
 #[cfg(feature = "std")]
-use std::{
-    borrow::Cow,
-    fmt,
-    string::{String, ToString},
-    vec::{IntoIter, Vec},
-};
-#[derive(Debug, Clone, PartialEq)]
-pub enum Segment<'a> {
-    Constant(Cow<'a, str>),
-    Parameter(Cow<'a, str>),
-    Star(Cow<'a, str>),
-}
-
-impl<'a> Segment<'a> {
-    pub fn to_static(self) -> Segment<'static> {
-        match self {
-            Segment::Constant(constant) => Segment::Constant(constant.to_string().into()),
-            Segment::Parameter(param) => Segment::Parameter(param.to_string().into()),
-            Segment::Star(star) => Segment::Star(star.to_string().into()),
-        }
-    }
-
-    pub fn constant(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
-        Segment::Constant(s.into())
-    }
-
-    pub fn parameter(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
-        Segment::Parameter(s.into())
-    }
-
-    pub fn star(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
-        Segment::Star(s.into())
-    }
-}
-
-impl<'a> fmt::Display for Segment<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Segment::Constant(c) => f.write_str(c),
-            Segment::Parameter(p) => write!(f, ":{}", p),
-            Segment::Star(s) => write!(f, "*{}", s),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Segments<'a>(pub(crate) Vec<Segment<'a>>);
-
-impl<'a> Segments<'a> {
-    pub fn new(segments: Vec<Segment<'a>>) -> Segments<'a> {
-        Segments(segments)
-    }
-}
-
-impl<'a> From<Segments<'a>> for Vec<Segment<'a>> {
-    fn from(segs: Segments<'a>) -> Self {
-        segs.0
-    }
-}
-
-impl<'a> fmt::Display for Segments<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for v in self.0.iter() {
-            write!(f, "/{}", v)?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> IntoIterator for Segments<'a> {
-    type Item = Segment<'a>;
-    type IntoIter = IntoIter<Self::Item>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<'a> AsSegments<'a> for Segments<'a> {
-    type Error = core::convert::Infallible;
-    type Iter = IntoIter<Segment<'a>>;
-    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-        Ok(self.0.into_iter())
-    }
-}
-
-pub trait AsSegments<'a> {
-    type Error;
-    type Iter: Iterator<Item = Segment<'a>>;
-    fn as_segments(self) -> Result<Self::Iter, Self::Error>;
-}
-
-impl<'a> AsSegments<'a> for Vec<Segment<'a>> {
-    type Error = core::convert::Infallible;
-    type Iter = IntoIter<Segment<'a>>;
-    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-        Ok(self.into_iter())
-    }
-}
-
-impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>] {
-    type Error = core::convert::Infallible;
-    type Iter = IntoIter<Segment<'a>>;
-    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-        Ok(self.to_vec().into_iter())
-    }
-}
-
-macro_rules! slice_impl {
-    ($i: literal) => {
-        impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>; $i] {
-            type Error = core::convert::Infallible;
-            type Iter = IntoIter<Segment<'a>>;
-            fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-                Ok(self.to_vec().into_iter())
-            }
-        }
-    };
-    ($i: literal, $($next: literal),*) => {
-        slice_impl!($($next),*);
-        impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>; $i] {
-            type Error = core::convert::Infallible;
-            type Iter = IntoIter<Segment<'a>>;
-            fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-                Ok(self.to_vec().into_iter())
-            }
-        }
-    };
-}
-
-slice_impl!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
+use std::vec::Vec;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Route<'a> {
@@ -171,21 +44,3 @@ impl<'a> Route<'a> {
 //         Ok(self.segments.iter())
 //     }
 // }
-
-impl<'a> AsSegments<'a> for &'a str {
-    type Error = ParseError;
-    type Iter = IntoIter<Segment<'a>>;
-    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-        let segments = parse(self)?;
-        Ok(segments.into_iter())
-    }
-}
-
-impl<'a> AsSegments<'a> for &'a String {
-    type Error = ParseError;
-    type Iter = IntoIter<Segment<'a>>;
-    fn as_segments(self) -> Result<Self::Iter, Self::Error> {
-        let segments = parse(self)?;
-        Ok(segments.into_iter())
-    }
-}

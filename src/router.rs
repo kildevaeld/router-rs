@@ -1,3 +1,5 @@
+use crate::parser::next_segment;
+
 use super::{AsSegments, Params, Segment, Segments};
 #[cfg(not(feature = "std"))]
 use alloc::{
@@ -6,7 +8,6 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::ops::Range;
 use generational_arena::{Arena, Index};
 #[cfg(feature = "std")]
 use std::{
@@ -97,7 +98,6 @@ impl<H> Router<H> {
             //
             match segment {
                 Segment::Constant(path) => {
-                    //
                     if let Some(node) = self.arena[current].constants.get(path.as_ref()) {
                         current = *node;
                         continue 'path;
@@ -110,7 +110,7 @@ impl<H> Router<H> {
                 Segment::Parameter(param) => {
                     //
                     if let Some(wildcard) = &self.arena[current].wildcard {
-                        // TODO Tjek is names is the same
+                        // TODO: Check if names is the same
                         current = wildcard.handle;
                         continue 'path;
                     } else {
@@ -245,44 +245,44 @@ impl<'a, H> IntoRoutes<'a, H> for Router<H> {
     }
 }
 
-#[allow(unused_assignments)]
-pub(crate) fn next_segment<'a>(
-    path: &'a str,
-    path_len: usize,
-    from: &mut usize,
-) -> Option<core::ops::Range<usize>> {
-    let mut seen = false;
-    for (i, ch) in path[*from..].char_indices() {
-        if ch != '/' {
-            continue;
-        }
+// #[allow(unused_assignments)]
+// pub(crate) fn next_segment<'a>(
+//     path: &'a str,
+//     path_len: usize,
+//     from: &mut usize,
+// ) -> Option<core::ops::Range<usize>> {
+//     let mut seen = false;
+//     for (i, ch) in path[*from..].char_indices() {
+//         if ch != '/' {
+//             continue;
+//         }
 
-        seen = true;
+//         seen = true;
 
-        let next = i + *from;
+//         let next = i + *from;
 
-        let range = Range {
-            start: *from,
-            end: next,
-        };
-        *from = next + 1;
-        return Some(range);
-    }
+//         let range = Range {
+//             start: *from,
+//             end: next,
+//         };
+//         *from = next + 1;
+//         return Some(range);
+//     }
 
-    if path_len == *from {
-        return None;
-    }
+//     if path_len == *from {
+//         return None;
+//     }
 
-    let start = *from;
-    if !seen {
-        *from = path_len;
-    }
+//     let start = *from;
+//     if !seen {
+//         *from = path_len;
+//     }
 
-    Some(Range {
-        start,
-        end: path_len,
-    })
-}
+//     Some(Range {
+//         start,
+//         end: path_len,
+//     })
+// }
 
 #[cfg(test)]
 mod test {

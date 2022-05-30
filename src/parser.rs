@@ -1,32 +1,13 @@
-use super::{router::next_segment, Segment};
+use crate::Params;
+
+use super::Segment;
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::Cow, collections::BTreeMap, vec::Vec};
 #[cfg(feature = "std")]
 use core::fmt;
 use core::ops::Range;
 #[cfg(feature = "std")]
-use std::{
-    borrow::Cow,
-    collections::{BTreeMap, HashMap},
-    vec::Vec,
-};
-
-pub trait Params<'a> {
-    fn set(&mut self, key: Cow<'a, str>, value: &'a str);
-}
-
-impl<'a> Params<'a> for BTreeMap<Cow<'a, str>, &'a str> {
-    fn set(&mut self, key: Cow<'a, str>, value: &'a str) {
-        self.insert(key, value);
-    }
-}
-
-#[cfg(feature = "std")]
-impl<'a> Params<'a> for HashMap<Cow<'a, str>, &'a str> {
-    fn set(&mut self, key: Cow<'a, str>, value: &'a str) {
-        self.insert(key, value);
-    }
-}
+use std::vec::Vec;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParseError {
@@ -71,13 +52,13 @@ pub fn parse<'a>(mut path: &'a str) -> Result<Vec<Segment<'a>>, ParseError> {
 
         let subpath = &path[segment.clone()];
 
-        if subpath.starts_with(":") || subpath.starts_with("*") {
+        if subpath.starts_with(':') || subpath.starts_with('*') {
             let name = &subpath[1..];
             if name.len() == 0 {
                 return Err(ParseError::MissingVarName { pos: segment });
             }
 
-            if subpath.starts_with("*") {
+            if subpath.starts_with('*') {
                 if idx != path_len {
                     return Err(ParseError::CatchAllNotLast);
                 }
@@ -137,13 +118,52 @@ pub fn match_path<'a: 'b, 'b, 'c, P: Params<'b>>(
     }
 }
 
+#[allow(unused_assignments)]
+pub(crate) fn next_segment<'a>(
+    path: &'a str,
+    path_len: usize,
+    from: &mut usize,
+) -> Option<core::ops::Range<usize>> {
+    let mut seen = false;
+    for (i, ch) in path[*from..].char_indices() {
+        if ch != '/' {
+            continue;
+        }
+
+        seen = true;
+
+        let next = i + *from;
+
+        let range = Range {
+            start: *from,
+            end: next,
+        };
+        *from = next + 1;
+        return Some(range);
+    }
+
+    if path_len == *from {
+        return None;
+    }
+
+    let start = *from;
+    if !seen {
+        *from = path_len;
+    }
+
+    Some(Range {
+        start,
+        end: path_len,
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     #[cfg(not(feature = "std"))]
-    use alloc::vec;
+    use alloc::{collections::BTreeMap, vec};
     #[cfg(feature = "std")]
-    use std::vec;
+    use std::{collections::BTreeMap, vec};
 
     #[test]
     fn test_parse() {
