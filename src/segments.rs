@@ -86,10 +86,26 @@ macro_rules! slice_impl {
                 Ok(self.to_vec().into_iter())
             }
         }
+
+        impl<'a> AsSegments<'a> for [Segment<'a>; $i] {
+            type Error = core::convert::Infallible;
+            type Iter = IntoIter<Segment<'a>>;
+            fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+                Ok(self.to_vec().into_iter())
+            }
+        }
     };
     ($i: literal, $($next: literal),*) => {
         slice_impl!($($next),*);
         impl<'a, 'c> AsSegments<'a> for &'c [Segment<'a>; $i] {
+            type Error = core::convert::Infallible;
+            type Iter = IntoIter<Segment<'a>>;
+            fn as_segments(self) -> Result<Self::Iter, Self::Error> {
+                Ok(self.to_vec().into_iter())
+            }
+        }
+
+        impl<'a> AsSegments<'a> for [Segment<'a>; $i] {
             type Error = core::convert::Infallible;
             type Iter = IntoIter<Segment<'a>>;
             fn as_segments(self) -> Result<Self::Iter, Self::Error> {
