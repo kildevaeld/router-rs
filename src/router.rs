@@ -164,7 +164,7 @@ impl<H> Router<H> {
         }
     }
 
-    pub fn mount<'a, S: AsSegments<'a>, R: IntoRoutes<'a, H>>(
+    pub fn mount<'a, 'b, S: AsSegments<'a>, R: IntoRoutes<'b, H>>(
         &mut self,
         path: S,
         router: R,
