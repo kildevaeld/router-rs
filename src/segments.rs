@@ -22,6 +22,10 @@ impl<'a> Segments<'a> {
     pub fn new(segments: Vec<Segment<'a>>) -> Segments<'a> {
         Segments(segments)
     }
+
+    pub fn to_static(self) -> Segments<'static> {
+        Segments(self.0.into_iter().map(|m| m.to_static()).collect())
+    }
 }
 
 impl<'a> From<Segments<'a>> for Vec<Segment<'a>> {
