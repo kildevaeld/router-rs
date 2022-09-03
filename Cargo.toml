@@ -7,13 +7,14 @@ version = "0.2.0"
 
 [dependencies]
 generational-arena = {version = "0.2", default-features = false}
+nom = {version = "7", default-features = false, features = ["alloc"]}
 
 [dev-dependencies]
 criterion = "0.3"
 
 [features]
 default = ["std"]
-std = ["generational-arena/std"]
+std = ["generational-arena/std", "nom/std"]
 
 [[bench]]
 harness = false

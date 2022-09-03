@@ -34,6 +34,12 @@ impl<'a> From<Segments<'a>> for Vec<Segment<'a>> {
     }
 }
 
+impl<'a> From<Vec<Segment<'a>>> for Segments<'a> {
+    fn from(segs: Vec<Segment<'a>>) -> Self {
+        Segments::new(segs)
+    }
+}
+
 impl<'a> fmt::Display for Segments<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for v in self.0.iter() {

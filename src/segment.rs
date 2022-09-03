@@ -35,6 +35,22 @@ impl<'a> Segment<'a> {
     pub fn star(s: impl Into<Cow<'a, str>>) -> Segment<'a> {
         Segment::Star(s.into())
     }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Segment::Constant(c) => c,
+            Segment::Parameter(p) => p,
+            Segment::Star(s) => s,
+        }
+    }
+
+    pub fn into_inner(self) -> Cow<'a, str> {
+        match self {
+            Segment::Constant(c) => c,
+            Segment::Parameter(p) => p,
+            Segment::Star(s) => s,
+        }
+    }
 }
 
 impl<'a> fmt::Display for Segment<'a> {

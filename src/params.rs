@@ -7,18 +7,18 @@ use std::{
 };
 
 pub trait Params<'a> {
-    fn set(&mut self, key: Cow<'a, str>, value: &'a str);
+    fn set(&mut self, key: Cow<'a, str>, value: Cow<'a, str>);
 }
 
-impl<'a> Params<'a> for BTreeMap<Cow<'a, str>, &'a str> {
-    fn set(&mut self, key: Cow<'a, str>, value: &'a str) {
+impl<'a> Params<'a> for BTreeMap<Cow<'a, str>, Cow<'a, str>> {
+    fn set(&mut self, key: Cow<'a, str>, value: Cow<'a, str>) {
         self.insert(key, value);
     }
 }
 
 #[cfg(feature = "std")]
-impl<'a> Params<'a> for HashMap<Cow<'a, str>, &'a str> {
-    fn set(&mut self, key: Cow<'a, str>, value: &'a str) {
+impl<'a> Params<'a> for HashMap<Cow<'a, str>, Cow<'a, str>> {
+    fn set(&mut self, key: Cow<'a, str>, value: Cow<'a, str>) {
         self.insert(key, value);
     }
 }
