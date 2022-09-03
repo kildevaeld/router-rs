@@ -20,13 +20,13 @@ use crate::{Params, Segments};
 use super::segment::Segment;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum ParseError {
     Parse(nom::Err<nom::error::Error<String>>),
 }
 
-impl<'a> From<nom::Err<nom::error::Error<&'a str>>> for Error {
+impl<'a> From<nom::Err<nom::error::Error<&'a str>>> for ParseError {
     fn from(err: nom::Err<nom::error::Error<&'a str>>) -> Self {
-        Error::Parse(err.to_owned())
+        ParseError::Parse(err.to_owned())
     }
 }
 
@@ -108,7 +108,7 @@ fn parse_url<'a>(input: &'a str) -> IResult<&str, Segments<'a>> {
     Ok((next, Segments::new(segments)))
 }
 
-pub fn parse<'a>(input: &'a str) -> Result<Segments<'a>, Error> {
+pub fn parse<'a>(input: &'a str) -> Result<Segments<'a>, ParseError> {
     let (_, segments) = parse_url(input)?;
     Ok(segments)
 }

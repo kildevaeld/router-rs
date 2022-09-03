@@ -447,7 +447,7 @@ mod test {
             .register(&[Segment::constant("statics")], "statics2")
             .expect("statics");
 
-        router1.mount("api", router2).expect("mount");
+        router1.mount("/api", router2).expect("mount");
 
         assert_eq!(
             router1.find("/api/statics", &mut BTreeMap::default()),

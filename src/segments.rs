@@ -1,6 +1,6 @@
 use crate::segment::Segment;
 
-use super::parser::*;
+use super::parser3::*;
 #[cfg(not(feature = "std"))]
 use alloc::{
     borrow::Cow,
