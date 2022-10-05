@@ -1,6 +1,6 @@
 #![no_std]
 
-#[cfg(not(feature = "std"))]
+// #[cfg(not(feature = "std"))]
 extern crate alloc;
 
 #[cfg(feature = "std")]
@@ -8,23 +8,12 @@ extern crate std;
 
 mod params;
 mod parser;
-
-// pub mod parser2;
-pub mod parser3;
-
 mod route;
 mod router;
 mod segment;
 mod segments;
 
-pub use self::{
-    params::*,
-    parser::{parse, ParseError},
-    route::*,
-    router::*,
-    segment::*,
-    segments::*,
-};
+pub use self::{params::*, route::*, router::*, segment::*, segments::*};
 
 // #[cfg(feature = "http")]
 // mod http_ext;

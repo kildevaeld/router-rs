@@ -1,5 +1,4 @@
-use crate::parser::next_segment;
-use crate::parser3::into_segments;
+use crate::parser::into_segments;
 
 use super::{AsSegments, Params, Segment, Segments};
 #[cfg(not(feature = "std"))]
@@ -12,7 +11,6 @@ use alloc::{
 use generational_arena::{Arena, Index};
 #[cfg(feature = "std")]
 use std::{
-    borrow::Cow,
     collections::HashMap,
     string::{String, ToString},
     vec::Vec,
@@ -187,76 +185,27 @@ impl<H> Router<H> {
         path: &'b str,
         params: &'c mut P,
     ) -> Option<&'a Vec<H>> {
-        let mut path = path;
-        if path.len() > 0 && path.as_bytes()[0] == b'/' {
-            path = &path[1..];
-        }
-        let path_len = path.char_indices().count();
-        let mut current_node = self.root;
-        let mut catch_all: Option<&'a Named<Index>> = None;
-        let mut from = 0;
-        loop {
-            let start_index = from;
-            let segment = next_segment(path, path_len, &mut from);
-            let segment = match segment {
-                Some(some) => some,
-                None => {
-                    //
-                    if let Some(current) = &self.arena[current_node].handle {
-                        return Some(current);
-                    } else if let Some(catch) = catch_all {
-                        params.set(Cow::Borrowed(&catch.name), (&path[start_index..]).into());
-                        let catch = &self.arena[catch.handle];
-                        return catch.handle.as_ref();
-                    } else {
-                        return None;
-                    }
-                }
-            };
-
-            if let Some(catch) = &self.arena[current_node].catchall {
-                catch_all = Some(catch);
-            }
-
-            let sub_path = &path[segment.clone()];
-
-            if let Some(constant) = self.arena[current_node].constants.get(sub_path) {
-                current_node = *constant;
-            } else if let Some(wildcard) = &self.arena[current_node].wildcard {
-                params.set(wildcard.name.clone().into(), sub_path.into());
-                current_node = wildcard.handle;
-            } else if let Some(catch) = catch_all {
-                params.set(catch.name.clone().into(), (&path[start_index..]).into());
-                let catch = &self.arena[catch.handle];
-                return catch.handle.as_ref();
-            } else {
-                return None;
-            }
-        }
-    }
-
-    pub fn find2<'a: 'b, 'b, 'c, P: Params<'b>>(
-        &'a self,
-        path: &'b str,
-        params: &'c mut P,
-    ) -> Option<&'a Vec<H>> {
         let mut current_node = self.root;
         let mut catch_all: Option<&'a Named<Index>> = None;
 
         let segments = into_segments(path);
 
+        let mut start = 0;
+
         for seg in segments {
+            start = seg.start;
             if let Some(catch) = &self.arena[current_node].catchall {
                 catch_all = Some(catch);
             }
 
-            if let Some(constant) = self.arena[current_node].constants.get(seg.as_str()) {
+            if let Some(constant) = self.arena[current_node].constants.get(&path[seg.clone()]) {
                 current_node = *constant;
             } else if let Some(wildcard) = &self.arena[current_node].wildcard {
-                params.set(wildcard.name.clone().into(), seg.into_inner());
+                params.set((&wildcard.name).into(), path[seg].into());
                 current_node = wildcard.handle;
             } else if let Some(catch) = catch_all {
-                params.set(catch.name.clone().into(), seg.into_inner());
+                let star = &path[seg.start..];
+                params.set((&catch.name).into(), star.into());
                 let catch = &self.arena[catch.handle];
                 return catch.handle.as_ref();
             } else {
@@ -267,7 +216,8 @@ impl<H> Router<H> {
         if let Some(current) = &self.arena[current_node].handle {
             return Some(current);
         } else if let Some(catch) = catch_all {
-            // params.set(Cow::Borrowed(&catch.name), (&path[start_index..]).into());
+            let star = &path[start..];
+            params.set((&catch.name).into(), star.into());
             let catch = &self.arena[catch.handle];
             return catch.handle.as_ref();
         } else {
@@ -285,45 +235,6 @@ impl<'a, H> IntoRoutes<'a, H> for Router<H> {
             .collect()
     }
 }
-
-// #[allow(unused_assignments)]
-// pub(crate) fn next_segment<'a>(
-//     path: &'a str,
-//     path_len: usize,
-//     from: &mut usize,
-// ) -> Option<core::ops::Range<usize>> {
-//     let mut seen = false;
-//     for (i, ch) in path[*from..].char_indices() {
-//         if ch != '/' {
-//             continue;
-//         }
-
-//         seen = true;
-
-//         let next = i + *from;
-
-//         let range = Range {
-//             start: *from,
-//             end: next,
-//         };
-//         *from = next + 1;
-//         return Some(range);
-//     }
-
-//     if path_len == *from {
-//         return None;
-//     }
-
-//     let start = *from;
-//     if !seen {
-//         *from = path_len;
-//     }
-
-//     Some(Range {
-//         start,
-//         end: path_len,
-//     })
-// }
 
 #[cfg(test)]
 mod test {
@@ -346,11 +257,11 @@ mod test {
         router.register(&[], "root").unwrap();
 
         assert_eq!(
-            router.find2("", &mut BTreeMap::default()),
+            router.find("", &mut BTreeMap::default()),
             Some(&vec!["root"])
         );
         assert_eq!(
-            router.find2("/", &mut BTreeMap::default()),
+            router.find("/", &mut BTreeMap::default()),
             Some(&vec!["root"])
         );
     }
@@ -380,11 +291,11 @@ mod test {
             .unwrap();
 
         assert_eq!(
-            router.find2("path", &mut BTreeMap::default()),
+            router.find("path", &mut BTreeMap::default()),
             Some(&vec!["/path"])
         );
         assert_eq!(
-            router.find2("/path", &mut BTreeMap::default()),
+            router.find("/path", &mut BTreeMap::default()),
             Some(&vec!["/path"])
         );
         let mut m = BTreeMap::default();
@@ -392,7 +303,7 @@ mod test {
         assert_eq!(m.get("id"), Some(&"10".into()));
 
         assert_eq!(
-            router.find2("/statics/filename.png", &mut BTreeMap::default()),
+            router.find("/statics/filename.png", &mut BTreeMap::default()),
             Some(&vec!["/statics/*filename"])
         );
     }

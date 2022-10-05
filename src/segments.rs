@@ -1,16 +1,17 @@
+use crate::parser::{parse, ParseError};
 use crate::segment::Segment;
-
-use super::parser3::*;
 #[cfg(not(feature = "std"))]
 use alloc::{
     borrow::Cow,
     fmt,
+    slice::Iter,
     string::{String, ToString},
     vec::{IntoIter, Vec},
 };
 #[cfg(feature = "std")]
 use std::{
     fmt,
+    slice::Iter,
     string::String,
     vec::{IntoIter, Vec},
 };
@@ -25,6 +26,16 @@ impl<'a> Segments<'a> {
 
     pub fn to_static(self) -> Segments<'static> {
         Segments(self.0.into_iter().map(|m| m.to_static()).collect())
+    }
+
+    pub fn iter<'b>(&'b self) -> Iter<'b, Segment<'a>> {
+        self.0.iter()
+    }
+}
+
+impl<'a> AsRef<[Segment<'a>]> for Segments<'a> {
+    fn as_ref(&self) -> &[Segment<'a>] {
+        self.0.as_ref()
     }
 }
 

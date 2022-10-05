@@ -1,6 +1,6 @@
-use crate::{Params, Segment};
-
 use super::parser::*;
+use crate::parser::match_path;
+use crate::{Params, Segments};
 #[cfg(not(feature = "std"))]
 use alloc::{
     borrow::Cow,
@@ -8,12 +8,10 @@ use alloc::{
     string::{String, ToString},
     vec::{IntoIter, Vec},
 };
-#[cfg(feature = "std")]
-use std::vec::Vec;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Route<'a> {
-    pub(crate) segments: Vec<Segment<'a>>,
+    pub(crate) segments: Segments<'a>,
 }
 
 impl<'a> Route<'a> {
@@ -27,12 +25,12 @@ impl<'a> Route<'a> {
     where
         'a: 'b,
     {
-        match_path(&self.segments, path, params)
+        match_path(&self.segments.0, path, params)
     }
 
     pub fn to_static(self) -> Route<'static> {
         Route {
-            segments: self.segments.into_iter().map(|m| m.to_static()).collect(),
+            segments: self.segments.to_static(),
         }
     }
 }
