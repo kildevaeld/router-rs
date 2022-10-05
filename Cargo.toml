@@ -10,7 +10,7 @@ generational-arena = {version = "0.2", default-features = false}
 peg = "0.8"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 
 [features]
 default = ["std"]
