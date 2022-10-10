@@ -131,8 +131,7 @@ pub fn match_path<'a: 'b, 'b, 'c, S: AsRef<[Segment<'a>]>, P: Params<'b>>(
     } else if path.len() == 0 {
         return false;
     }
-    // let path_len = path.char_indices().count();
-    // let mut idx = 0;
+
     let mut segments = segments.iter();
     let mut current: Option<&Segment<'_>> = None;
 
