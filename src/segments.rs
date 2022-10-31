@@ -31,6 +31,10 @@ impl<'a> Segments<'a> {
     pub fn iter<'b>(&'b self) -> Iter<'b, Segment<'a>> {
         self.0.iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<'a> AsRef<[Segment<'a>]> for Segments<'a> {
@@ -136,7 +140,7 @@ macro_rules! slice_impl {
     };
 }
 
-slice_impl!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
+slice_impl!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21);
 
 impl<'a> AsSegments<'a> for &'a str {
     type Error = ParseError;
