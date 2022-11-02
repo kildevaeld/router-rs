@@ -186,7 +186,7 @@ impl<H> Router<H> {
         params: &'c mut P,
     ) -> Option<&'a Vec<H>> {
         let mut current_node = self.root;
-        let mut catch_all: Option<&'a Named<Index>> = None;
+        let mut catch_all: Option<&'a Named<Index>> = self.arena[current_node].catchall.as_ref();
 
         let segments = into_segments(path);
 
