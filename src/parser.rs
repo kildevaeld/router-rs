@@ -299,46 +299,46 @@ mod test {
     #[test]
     fn test_match_path() {
         assert!(match_path(
-            &parse("/").expect("parse"),
+            parse("/").expect("parse"),
             "",
             &mut BTreeMap::default()
         ));
         assert!(match_path(
-            &parse("/").expect("parse"),
+            parse("/").expect("parse"),
             "/",
             &mut BTreeMap::default()
         ));
         assert!(!match_path(
-            &parse("/").expect("parse"),
+            parse("/").expect("parse"),
             "/withpath",
             &mut BTreeMap::default()
         ));
         assert!(match_path(
-            &parse("/subpath").expect("parse"),
+            parse("/subpath").expect("parse"),
             "/subpath",
             &mut BTreeMap::default()
         ));
         let mut params = BTreeMap::default();
         assert!(match_path(
-            &parse("/:subpath").expect("parse"),
+            parse("/:subpath").expect("parse"),
             "/ost",
             &mut params
         ));
         assert_eq!(params.get("subpath").map(|m| m), Some(&"ost".into()));
         assert!(!match_path(
-            &parse("/:subpath").expect("parse"),
+            parse("/:subpath").expect("parse"),
             "/ost/boef",
             &mut BTreeMap::default()
         ));
 
         assert!(match_path(
-            &parse("http://test.com/").expect("parse"),
+            parse("http://test.com/").expect("parse"),
             "http://test.com/",
             &mut BTreeMap::default()
         ));
 
         assert!(match_path(
-            &parse("http://test.com/:name").expect("parse"),
+            parse("http://test.com/:name").expect("parse"),
             "http://test.com/hello_world",
             &mut BTreeMap::default()
         ));
