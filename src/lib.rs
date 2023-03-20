@@ -12,6 +12,4 @@ mod router;
 mod segment;
 mod segments;
 
-pub use self::{
-    params::*, parser::parse, parser::ParseError, route::*, router::*, segment::*, segments::*,
-};
+pub use self::{params::*, parser::ParseError, route::*, router::*, segment::*, segments::*};
