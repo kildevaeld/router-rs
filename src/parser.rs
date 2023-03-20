@@ -42,7 +42,7 @@ peg::parser! {
             = p:( parse_constant_segment() / parse_variable_segment() )  { p }
 
         rule parse_constant_segment() -> Segment<'input>
-            = i:$identifier() {
+            = i:$(['a'..='z' | 'A'..='Z' | '_' | '0'..='9' | '.' | '-']+) {
                 Segment::Constant(i.into())
             }
 
