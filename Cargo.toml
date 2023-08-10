@@ -6,17 +6,12 @@ version = "0.2.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-generational-arena = {version = "0.2", default-features = false}
-peg = "0.8"
+generational-arena = { version = "0.2" }
+peg = { version = "0.8" }
 
 [dev-dependencies]
-criterion = "0.4"
-
-[features]
-default = ["std"]
-std = ["generational-arena/std"]
+criterion = "0.5"
 
 [[bench]]
 harness = false
 name = "benchmark"
-required-features = ["std"]

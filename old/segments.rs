@@ -1,5 +1,14 @@
 use crate::parser::{parse, ParseError};
 use crate::segment::Segment;
+#[cfg(not(feature = "std"))]
+use alloc::{
+    borrow::Cow,
+    fmt,
+    slice::Iter,
+    string::{String, ToString},
+    vec::{IntoIter, Vec},
+};
+#[cfg(feature = "std")]
 use std::{
     fmt,
     slice::Iter,

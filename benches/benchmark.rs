@@ -1,7 +1,32 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use router::{Route, Router, Segment};
-
+use router::{match_path, parse, Params, ParseError, Router, Segment, Segments};
 use std::{collections::HashMap, vec::Vec};
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Route<'a> {
+    pub(crate) segments: Segments<'a>,
+}
+
+impl<'a> Route<'a> {
+    pub fn new(path: &'a str) -> Result<Route<'a>, ParseError> {
+        Ok(Route {
+            segments: parse(path)?,
+        })
+    }
+
+    pub fn match_path<'b, P: Params<'b>>(&self, path: &'b str, params: &'b mut P) -> bool
+    where
+        'a: 'b,
+    {
+        match_path(&self.segments, path, params)
+    }
+
+    pub fn to_static(self) -> Route<'static> {
+        Route {
+            segments: self.segments.to_static(),
+        }
+    }
+}
 
 fn find<'a>(graph: &'a Router<String>, path: &str) -> Option<&'a Vec<String>> {
     graph.find(path, &mut HashMap::default())
@@ -51,6 +76,24 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("first router", |b| {
         //
         b.iter(|| find2(&routes, black_box("test1")))
+    });
+
+    c.bench_function("fifth graph", |b| {
+        //
+        b.iter(|| find(&graph, black_box("test5")))
+    });
+    c.bench_function("fifth router", |b| {
+        //
+        b.iter(|| find2(&routes, black_box("test5")))
+    });
+
+    c.bench_function("tenth graph", |b| {
+        //
+        b.iter(|| find(&graph, black_box("test10")))
+    });
+    c.bench_function("tenth router", |b| {
+        //
+        b.iter(|| find2(&routes, black_box("test10")))
     });
 }
 

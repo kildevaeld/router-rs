@@ -1,16 +1,18 @@
-use crate::segments::Segments;
-use crate::{params::Params, segment::Segment};
+use super::Segment;
+use crate::{Params, Segments};
+use alloc::{vec, vec::Vec};
 use core::ops::Range;
-
-pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
-
-pub use parser::parse;
 
 peg::parser! {
     grammar parser() for str {
 
         pub rule parse() -> Segments<'input>
-            = segments:("/"? i:parse_path() { i }) star:("/" s:parse_star_segment() { s })? "/"? {
+            = segments:(s:start() i:("/" i:parse_path() { i })? {
+                let mut i = i.unwrap_or_default();
+                i.insert(0, s);
+                i
+            }
+            / "/"? i:parse_path() { i }) star:("/" s:parse_star_segment() { s })? "/"? {
                 let mut segments = segments;
                 if let Some(i) = star {
                     segments.push(i);
@@ -61,7 +63,11 @@ peg::parser! {
     }
 }
 
-pub(crate) fn into_segments<'a>(input: &'a str) -> impl Iterator<Item = Range<usize>> + 'a {
+pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
+
+pub use parser::parse;
+
+pub fn into_segments<'a>(input: &'a str) -> impl Iterator<Item = Range<usize>> + 'a {
     let mut progress = 0usize;
     let len = input.len();
 
@@ -160,7 +166,9 @@ pub fn match_path<'a: 'b, 'b, 'c, S: AsRef<[Segment<'a>]>, P: Params<'b>>(
 #[cfg(test)]
 mod test {
     use super::*;
-
+    #[cfg(not(feature = "std"))]
+    use alloc::{collections::BTreeMap, string::ToString, vec, String};
+    #[cfg(feature = "std")]
     use std::{collections::BTreeMap, string::String, string::ToString, vec};
 
     use parser::parse;
@@ -267,6 +275,25 @@ mod test {
             ]
             .into()
         );
+
+        assert_eq!(
+            parse("https://example.com/").expect("parse parameter"),
+            vec![Segment::Constant("https://example.com".into()),].into()
+        );
+
+        assert_eq!(
+            parse("https://example.com/test").expect("parse parameter"),
+            vec![
+                Segment::Constant("https://example.com".into()),
+                Segment::Constant("test".into())
+            ]
+            .into()
+        );
+
+        // assert_eq!(
+        //     parse("*all/and-then-some"),
+        //     Err(ParseError::CatchAllNotLast)
+        // );
     }
 
     #[test]
@@ -301,6 +328,18 @@ mod test {
         assert!(!match_path(
             parse("/:subpath").expect("parse"),
             "/ost/boef",
+            &mut BTreeMap::default()
+        ));
+
+        assert!(match_path(
+            parse("http://test.com/").expect("parse"),
+            "http://test.com/",
+            &mut BTreeMap::default()
+        ));
+
+        assert!(match_path(
+            parse("http://test.com/:name").expect("parse"),
+            "http://test.com/hello_world",
             &mut BTreeMap::default()
         ));
     }

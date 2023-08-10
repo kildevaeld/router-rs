@@ -1,9 +1,12 @@
-use std::{
+#[cfg(not(feature = "std"))]
+use alloc::{
     borrow::Cow,
     fmt,
     string::{String, ToString},
     vec::{IntoIter, Vec},
 };
+#[cfg(feature = "std")]
+use std::{borrow::Cow, fmt, string::ToString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Segment<'a> {

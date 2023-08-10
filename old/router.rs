@@ -1,7 +1,15 @@
 use crate::parser::into_segments;
 
 use super::{AsSegments, Params, Segment, Segments};
+#[cfg(not(feature = "std"))]
+use alloc::{
+    borrow::Cow,
+    collections::BTreeMap as HashMap,
+    string::{String, ToString},
+    vec::Vec,
+};
 use generational_arena::{Arena, Index};
+#[cfg(feature = "std")]
 use std::{
     collections::HashMap,
     string::{String, ToString},
@@ -231,7 +239,15 @@ impl<'a, H> IntoRoutes<'a, H> for Router<H> {
 #[cfg(test)]
 mod test {
     pub use super::*;
+
+    #[cfg(not(feature = "std"))]
+    use alloc::collections::BTreeMap;
+    #[cfg(feature = "std")]
     use std::collections::BTreeMap;
+
+    #[cfg(not(feature = "std"))]
+    use alloc::vec;
+    #[cfg(feature = "std")]
     use std::vec;
 
     #[test]
@@ -251,7 +267,7 @@ mod test {
     }
 
     #[test]
-    fn test_router() {
+    fn test2() {
         let mut router = Router::new();
 
         router
