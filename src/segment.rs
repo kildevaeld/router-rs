@@ -1,8 +1,7 @@
 use std::{
     borrow::Cow,
     fmt,
-    string::{String, ToString},
-    vec::{IntoIter, Vec},
+    string::{ToString},
 };
 
 #[derive(Debug, Clone, PartialEq)]
