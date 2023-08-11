@@ -151,9 +151,9 @@ impl<'a> AsSegments<'a> for &'a String {
     }
 }
 
-impl AsSegments<'static> for String {
+impl<'a> AsSegments<'a> for String {
     type Error = ParseError;
-    type Iter = IntoIter<Segment<'static>>;
+    type Iter = IntoIter<Segment<'a>>;
     fn as_segments(self) -> Result<Self::Iter, Self::Error> {
         let segments = parse(&self)?;
         Ok(segments.to_static().into_iter())
