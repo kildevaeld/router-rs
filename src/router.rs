@@ -8,21 +8,22 @@ use std::{
     vec::Vec,
 };
 
-pub trait IntoRoutes<'a, H> {
-    fn into_routes(self) -> Vec<(Segments<'a>, Vec<H>)>;
+#[derive(Debug, Clone)]
+pub struct Route<'a, H> {
+    pub segments: Segments<'a>,
+    pub handlers: Vec<H>,
 }
 
-impl<H> IntoRoutes<'static, H> for Vec<(Segments<'static>, Vec<H>)> {
-    fn into_routes(self) -> Vec<(Segments<'static>, Vec<H>)> {
-        self
+impl<'a, H> Route<'a, H> {
+    pub fn to_owned(self) -> Route<'a, H> {
+        Route {
+            segments: self.segments.to_static(),
+            handlers: self.handlers,
+        }
     }
-}
 
-impl<'a, H> IntoRoutes<'a, H> for (Segments<'a>, Vec<H>) {
-    fn into_routes(self) -> Vec<(Segments<'a>, Vec<H>)> {
-        let mut vec = Vec::default();
-        vec.push(self);
-        vec
+    pub fn path(&self) -> String {
+        self.segments.to_string()
     }
 }
 
@@ -147,24 +148,25 @@ impl<H> Router<H> {
         self.root = root;
     }
 
-    pub fn extend<'a, R: IntoRoutes<'a, H>>(&mut self, router: R) {
-        for route in router.into_routes() {
-            for handle in route.1 {
-                self.register(route.0.clone(), handle).expect("register");
+    pub fn extend<'a, R: IntoIterator<Item = Route<'a, H>>>(&mut self, router: R) {
+        for route in router {
+            for handle in route.handlers {
+                self.register(route.segments.clone(), handle)
+                    .expect("register");
             }
         }
     }
 
-    pub fn mount<'a, 'b, S: AsSegments<'a>, R: IntoRoutes<'b, H>>(
+    pub fn mount<'a, 'b, S: AsSegments<'a>, R: IntoIterator<Item = Route<'b, H>>>(
         &mut self,
         path: S,
         router: R,
     ) -> Result<(), S::Error> {
         let segments = path.as_segments()?.collect::<Vec<_>>();
-        for route in router.into_routes() {
+        for route in router {
             let mut segments = segments.clone();
-            segments.extend(route.0);
-            for handle in route.1 {
+            segments.extend(route.segments);
+            for handle in route.handlers {
                 self.register(segments.clone(), handle).expect("register");
             }
         }
@@ -218,13 +220,31 @@ impl<H> Router<H> {
     }
 }
 
-impl<'a, H> IntoRoutes<'a, H> for Router<H> {
-    fn into_routes(self) -> Vec<(Segments<'a>, Vec<H>)> {
-        self.arena
-            .into_iter()
-            .filter(|m| m.segments.is_some())
-            .map(|m| (m.segments.unwrap(), m.handle.unwrap()))
-            .collect()
+impl<'a, H> IntoIterator for Router<H> {
+    type IntoIter = IntoIter<H>;
+    type Item = Route<'static, H>;
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self.arena.into_iter())
+    }
+}
+
+pub struct IntoIter<H>(generational_arena::IntoIter<Node<H>>);
+
+impl<H> Iterator for IntoIter<H> {
+    type Item = Route<'static, H>;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let Some(next) = self.0.next() else {
+                return None;
+            };
+
+            if let Some(segments) = next.segments {
+                return Some(Route {
+                    handlers: next.handle.unwrap(),
+                    segments,
+                });
+            }
+        }
     }
 }
 
