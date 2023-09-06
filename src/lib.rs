@@ -7,7 +7,7 @@ mod segments;
 pub use self::{
     params::Params,
     parser::{match_path, parse, ParseError},
-    router::Router,
+    router::{Route, Router},
     segment::Segment,
     segments::*,
 };
