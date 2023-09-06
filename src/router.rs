@@ -1,7 +1,6 @@
-use crate::parser::into_segments;
-
 use super::{AsSegments, Params, Segment, Segments};
-use generational_arena::{Arena, Index};
+use crate::parser::into_segments;
+use id_arena::{Arena, Id};
 use std::{
     collections::HashMap,
     string::{String, ToString},
@@ -35,10 +34,10 @@ struct Named<H> {
 
 #[derive(Debug, Clone)]
 struct Node<H> {
-    constants: HashMap<String, Index>,
+    constants: HashMap<String, Id<Node<H>>>,
     handle: Option<Vec<H>>,
-    catchall: Option<Named<Index>>,
-    wildcard: Option<Named<Index>>,
+    catchall: Option<Named<Id<Node<H>>>>,
+    wildcard: Option<Named<Id<Node<H>>>>,
     segments: Option<Segments<'static>>,
 }
 
@@ -57,13 +56,13 @@ impl<H> Default for Node<H> {
 #[derive(Debug, Clone)]
 pub struct Router<H> {
     arena: Arena<Node<H>>,
-    root: Index,
+    root: Id<Node<H>>,
 }
 
 impl<H> Router<H> {
     pub fn new() -> Router<H> {
         let mut arena = Arena::new();
-        let root = arena.insert(Node::default());
+        let root = arena.alloc(Node::default());
         Router { arena, root }
     }
 
@@ -95,7 +94,7 @@ impl<H> Router<H> {
                         continue 'path;
                     }
 
-                    let node = self.arena.insert(Node::default());
+                    let node = self.arena.alloc(Node::default());
                     self.arena[current].constants.insert(path.to_string(), node);
                     current = node;
                 }
@@ -106,7 +105,7 @@ impl<H> Router<H> {
                         current = wildcard.handle;
                         continue 'path;
                     } else {
-                        let node = self.arena.insert(Node::default());
+                        let node = self.arena.alloc(Node::default());
                         self.arena[current].wildcard = Some(Named {
                             name: param.to_string(),
                             handle: node,
@@ -120,7 +119,7 @@ impl<H> Router<H> {
                     if let Some(star) = &self.arena[current].catchall {
                         current = star.handle;
                     } else {
-                        let node = self.arena.insert(Node::default());
+                        let node = self.arena.alloc(Node::default());
                         self.arena[current].catchall = Some(Named {
                             name: star.to_string(),
                             handle: node,
@@ -144,7 +143,7 @@ impl<H> Router<H> {
 
     pub fn clear(&mut self) {
         self.arena = Arena::new();
-        let root = self.arena.insert(Node::default());
+        let root = self.arena.alloc(Node::default());
         self.root = root;
     }
 
@@ -180,7 +179,8 @@ impl<H> Router<H> {
         params: &'c mut P,
     ) -> Option<&'a Vec<H>> {
         let mut current_node = self.root;
-        let mut catch_all: Option<&'a Named<Index>> = self.arena[current_node].catchall.as_ref();
+        let mut catch_all: Option<&'a Named<Id<Node<H>>>> =
+            self.arena[current_node].catchall.as_ref();
 
         let segments = into_segments(path);
 
@@ -228,13 +228,13 @@ impl<'a, H> IntoIterator for Router<H> {
     }
 }
 
-pub struct IntoIter<H>(generational_arena::IntoIter<Node<H>>);
+pub struct IntoIter<H>(id_arena::IntoIter<Node<H>, id_arena::DefaultArenaBehavior<Node<H>>>);
 
 impl<H> Iterator for IntoIter<H> {
     type Item = Route<'static, H>;
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let Some(next) = self.0.next() else {
+            let Some((_, next)) = self.0.next() else {
                 return None;
             };
 
