@@ -1,6 +1,6 @@
 mod params;
 mod parser;
-mod router;
+pub mod router;
 mod segment;
 mod segments;
 
