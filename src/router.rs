@@ -24,6 +24,16 @@ impl<'a, H> Route<'a, H> {
     pub fn path(&self) -> String {
         self.segments.to_string()
     }
+
+    pub fn map<F, U>(self, func: F) -> Route<'a, U>
+    where
+        F: Fn(H) -> U,
+    {
+        Route {
+            segments: self.segments,
+            handlers: self.handlers.into_iter().map(func).collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
