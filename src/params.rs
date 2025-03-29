@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::{BTreeMap, HashMap},
-};
+use alloc::{borrow::Cow, collections::btree_map::BTreeMap};
 
 pub trait Params<'a> {
     fn set(&mut self, key: Cow<'a, str>, value: Cow<'a, str>);
@@ -13,7 +10,8 @@ impl<'a> Params<'a> for BTreeMap<Cow<'a, str>, Cow<'a, str>> {
     }
 }
 
-impl<'a> Params<'a> for HashMap<Cow<'a, str>, Cow<'a, str>> {
+#[cfg(feature = "std")]
+impl<'a> Params<'a> for std::collections::HashMap<Cow<'a, str>, Cow<'a, str>> {
     fn set(&mut self, key: Cow<'a, str>, value: Cow<'a, str>) {
         self.insert(key, value);
     }

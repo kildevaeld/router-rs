@@ -1,12 +1,23 @@
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
+
+mod matcher;
 mod params;
 mod parser;
 pub mod router;
 mod segment;
 mod segments;
 
+pub use udled::Error as ParseError;
+
 pub use self::{
+    matcher::*,
     params::Params,
-    parser::{match_path, parse, ParseError},
+    parser::parse,
     router::{Route, Router},
     segment::Segment,
     segments::*,

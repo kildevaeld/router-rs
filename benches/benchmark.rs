@@ -1,6 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use router::{match_path, parse, Params, ParseError, Router, Segment, Segments};
-use std::{collections::HashMap, vec::Vec};
+use std::{
+    collections::{BTreeMap, HashMap},
+    vec::Vec,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Route<'a> {
@@ -23,18 +26,18 @@ impl<'a> Route<'a> {
 
     pub fn to_static(self) -> Route<'static> {
         Route {
-            segments: self.segments.to_static(),
+            segments: self.segments.to_owned(),
         }
     }
 }
 
 fn find<'a>(graph: &'a Router<String>, path: &str) -> Option<&'a Vec<String>> {
-    graph.find(path, &mut HashMap::default())
+    graph.find(path, &mut BTreeMap::default())
 }
 
 fn find2<'a>(routes: &Vec<Route<'static>>, path: &str) -> Option<usize> {
     for (kv, route) in routes.iter().enumerate() {
-        if route.match_path(path, &mut HashMap::default()) {
+        if route.match_path(path, &mut BTreeMap::default()) {
             return Some(kv);
         }
     }

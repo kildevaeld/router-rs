@@ -1,8 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt,
-    string::{ToString},
-};
+use alloc::{borrow::Cow, fmt, string::ToString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Segment<'a> {
@@ -12,7 +8,7 @@ pub enum Segment<'a> {
 }
 
 impl<'a> Segment<'a> {
-    pub fn to_static(self) -> Segment<'static> {
+    pub fn to_owned(self) -> Segment<'static> {
         match self {
             Segment::Constant(constant) => Segment::Constant(constant.to_string().into()),
             Segment::Parameter(param) => Segment::Parameter(param.to_string().into()),

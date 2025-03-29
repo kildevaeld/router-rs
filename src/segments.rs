@@ -1,13 +1,13 @@
-use crate::parser::{parse, ParseError};
+use crate::parser::parse;
 use crate::segment::Segment;
-use std::{
+use alloc::{
     fmt,
     slice::Iter,
     string::String,
     vec::{IntoIter, Vec},
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct Segments<'a>(pub(crate) Vec<Segment<'a>>);
 
 impl<'a> Segments<'a> {
@@ -15,8 +15,8 @@ impl<'a> Segments<'a> {
         Segments(segments)
     }
 
-    pub fn to_static(self) -> Segments<'static> {
-        Segments(self.0.into_iter().map(|m| m.to_static()).collect())
+    pub fn to_owned(self) -> Segments<'static> {
+        Segments(self.0.into_iter().map(|m| m.to_owned()).collect())
     }
 
     pub fn iter<'b>(&'b self) -> Iter<'b, Segment<'a>> {
@@ -134,7 +134,7 @@ macro_rules! slice_impl {
 slice_impl!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22);
 
 impl<'a> AsSegments<'a> for &'a str {
-    type Error = ParseError;
+    type Error = udled::Error;
     type Iter = IntoIter<Segment<'a>>;
     fn as_segments(self) -> Result<Self::Iter, Self::Error> {
         let segments = parse(self)?;
@@ -143,7 +143,7 @@ impl<'a> AsSegments<'a> for &'a str {
 }
 
 impl<'a> AsSegments<'a> for &'a String {
-    type Error = ParseError;
+    type Error = udled::Error;
     type Iter = IntoIter<Segment<'a>>;
     fn as_segments(self) -> Result<Self::Iter, Self::Error> {
         let segments = parse(self)?;
@@ -152,10 +152,10 @@ impl<'a> AsSegments<'a> for &'a String {
 }
 
 impl<'a> AsSegments<'a> for String {
-    type Error = ParseError;
+    type Error = udled::Error;
     type Iter = IntoIter<Segment<'a>>;
     fn as_segments(self) -> Result<Self::Iter, Self::Error> {
         let segments = parse(&self)?;
-        Ok(segments.to_static().into_iter())
+        Ok(segments.to_owned().into_iter())
     }
 }

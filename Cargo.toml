@@ -4,10 +4,14 @@ name = "router"
 version = "0.2.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["std"]
+std = ["id-arena/std"]
 
 [dependencies]
-id-arena = { version = "2" }
-peg = { version = "0.8" }
+id-arena = { version = "2", default-features = false }
+udled = { version = "0.3" }
+udled-tokenizers = { version = "0.2" }
 
 [dev-dependencies]
 criterion = "0.5"

@@ -1,11 +1,11 @@
 use super::{AsSegments, Params, Segment, Segments};
-use crate::parser::into_segments;
-use id_arena::{Arena, Id};
-use std::{
-    collections::HashMap,
+use crate::matcher::into_segments;
+use alloc::{
+    collections::btree_map::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
+use id_arena::{Arena, Id};
 
 #[derive(Debug, Clone)]
 pub struct Route<'a, H> {
@@ -16,7 +16,7 @@ pub struct Route<'a, H> {
 impl<'a, H> Route<'a, H> {
     pub fn to_owned(self) -> Route<'a, H> {
         Route {
-            segments: self.segments.to_static(),
+            segments: self.segments.to_owned(),
             handlers: self.handlers,
         }
     }
@@ -44,8 +44,8 @@ struct Named<H> {
 
 #[derive(Debug, Clone)]
 struct Node<H> {
-    constants: HashMap<String, Id<Node<H>>>,
-    handle: Option<Vec<H>>,
+    constants: BTreeMap<String, Id<Node<H>>>,
+    handle: Vec<H>,
     catchall: Option<Named<Id<Node<H>>>>,
     wildcard: Option<Named<Id<Node<H>>>>,
     segments: Option<Segments<'static>>,
@@ -54,8 +54,8 @@ struct Node<H> {
 impl<H> Default for Node<H> {
     fn default() -> Node<H> {
         Node {
-            constants: HashMap::default(),
-            handle: None,
+            constants: Default::default(),
+            handle: Default::default(),
             catchall: None,
             wildcard: None,
             segments: None,
@@ -92,7 +92,7 @@ impl<H> Router<H> {
 
         let segments = path
             .as_segments()?
-            .map(|m| m.to_static())
+            .map(|m| m.to_owned())
             .collect::<Vec<_>>();
 
         'path: for segment in &segments {
@@ -141,12 +141,12 @@ impl<H> Router<H> {
             };
         }
 
-        if self.arena[current].handle.is_none() {
-            self.arena[current].handle = Some(Vec::default());
-        }
+        // if self.arena[current].handle.is_none() {
+        //     self.arena[current].handle = Some(Vec::default());
+        // }
 
         self.arena[current].segments = Some(Segments(segments));
-        self.arena[current].handle.as_mut().unwrap().push(handle);
+        self.arena[current].handle.push(handle);
 
         Ok(self)
     }
@@ -211,19 +211,19 @@ impl<H> Router<H> {
                 let star = &path[seg.start..];
                 params.set((&catch.name).into(), star.into());
                 let catch = &self.arena[catch.handle];
-                return catch.handle.as_ref();
+                return Some(&catch.handle);
             } else {
                 return None;
             }
         }
 
-        if let Some(current) = &self.arena[current_node].handle {
-            return Some(current);
+        if !self.arena[current_node].handle.is_empty() {
+            return Some(&self.arena[current_node].handle);
         } else if let Some(catch) = catch_all {
             let star = &path[start..];
             params.set((&catch.name).into(), star.into());
             let catch = &self.arena[catch.handle];
-            return catch.handle.as_ref();
+            return Some(&catch.handle);
         } else {
             return None;
         }
@@ -250,7 +250,7 @@ impl<H> Iterator for IntoIter<H> {
 
             if let Some(segments) = next.segments {
                 return Some(Route {
-                    handlers: next.handle.unwrap(),
+                    handlers: next.handle,
                     segments,
                 });
             }
@@ -261,8 +261,8 @@ impl<H> Iterator for IntoIter<H> {
 #[cfg(test)]
 mod test {
     pub use super::*;
-    use std::collections::BTreeMap;
-    use std::vec;
+    use alloc::collections::BTreeMap;
+    use alloc::vec;
 
     #[test]
     fn test() {

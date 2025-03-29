@@ -1,159 +1,111 @@
-use crate::segments::Segments;
-use crate::{params::Params, segment::Segment};
-use core::ops::Range;
+use alloc::borrow::Cow;
 
-pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
+use alloc::vec::Vec;
+use udled::{
+    any,
+    token::{AlphaNumeric, Opt},
+    Input, Span, Tokenizer, WithSpan,
+};
+use udled_tokenizers::{Ident, Punctuated};
 
-pub use parser::parse;
+use crate::{Segment, Segments};
 
-peg::parser! {
-    grammar parser() for str {
+pub fn parse<'a>(input: &'a str) -> Result<Segments<'a>, udled::Error> {
+    let mut input = Input::new(input);
 
-        pub rule parse() -> Segments<'input>
-            = segments:("/"? i:parse_path() { i }) star:("/" s:parse_star_segment() { s })? "/"? {
-                let mut segments = segments;
-                if let Some(i) = star {
-                    segments.push(i);
-                }
+    input.eat(Opt('/'))?;
 
-                segments.into()
-            }
-            / "/"? s:parse_star_segment()?  "/"? { Segments(s.map(|m| vec![m]).unwrap_or_default()) }
-
-
-
-        rule start() -> Segment<'input>
-            = i:$(identifier() ":" authority()?) {
-                Segment::Constant(i.into())
-            }
-
-        rule authority()
-            = "//" (identifier() "@" )?  ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.']+
-
-
-        rule parse_path() -> Vec<Segment<'input>>
-            = p:parse_path_segment() ++ "/" {
-                p
-            }
-
-        rule parse_path_segment() ->    Segment<'input>
-            = p:( parse_constant_segment() / parse_variable_segment() )  { p }
-
-        rule parse_constant_segment() -> Segment<'input>
-            = i:$(['a'..='z' | 'A'..='Z' | '_' | '0'..='9' | '.' | '-']+) {
-                Segment::Constant(i.into())
-            }
-
-        rule parse_variable_segment() -> Segment<'input>
-            = ":" i:$identifier() {
-                Segment::Parameter(i.into())
-            }
-
-
-        rule parse_star_segment() -> Segment<'input>
-            = "*" i:$identifier() {
-                Segment::Star(i.into())
-            }
-
-
-        rule identifier()
-            = (['a'..='z' | 'A'..='Z' | '_' | '0'..='9'])+
+    if input.eos() {
+        return Ok(Segments::default());
     }
+
+    let mut segments = if input.peek(SegmentParser)? {
+        input
+            .parse(Punctuated::new(SegmentParser, '/').with_trailing(true))?
+            .value
+    } else {
+        Vec::default()
+    };
+
+    if input.eos() {
+        return Ok(segments.into());
+    }
+
+    if input.peek('*')? {
+        let (_, name) = input.parse(('*', Ident))?;
+        segments.push(Segment::Star(name.value.into()));
+    }
+
+    Ok(segments.into())
 }
 
-pub(crate) fn into_segments<'a>(input: &'a str) -> impl Iterator<Item = Range<usize>> + 'a {
-    let mut progress = 0usize;
-    let len = input.len();
+struct SegmentParser;
 
-    if input.starts_with("/") {
-        progress += 1;
-    }
+impl Tokenizer for SegmentParser {
+    type Token<'a> = Segment<'a>;
 
-    std::iter::from_fn(move || {
-        if progress == input.len() {
-            return None;
-        }
-
-        let mut current = progress;
-
-        let mut chars = input[progress..].chars().peekable();
-
-        loop {
-            let next = match chars.next() {
-                Some(ret) => ret,
-                None => break,
-            };
-
-            current += 1;
-
-            if next == '/' {
-                if let Some(_) = chars.next_if(|ch| ch == &'/') {
-                    current += 1;
-                } else {
-                    current -= 1;
-                    break;
-                }
-            }
-        }
-
-        if progress == current {
-            None
+    fn to_token<'a>(
+        &self,
+        reader: &mut udled::Reader<'_, 'a>,
+    ) -> Result<Self::Token<'a>, udled::Error> {
+        if reader.peek(ContantSegmentParser)? {
+            reader.parse(ContantSegmentParser)
         } else {
-            let rg = progress..current;
-            progress = current;
-            if progress != len {
-                progress += 1;
-            }
-            Some(rg)
+            reader.parse(ParamSegmentParser)
         }
-    })
+    }
+
+    fn peek(&self, reader: &mut udled::Reader<'_, '_>) -> Result<bool, udled::Error> {
+        Ok(reader.peek(':')? || reader.peek(Ident)?)
+    }
 }
 
-pub fn match_path<'a: 'b, 'b, 'c, S: AsRef<[Segment<'a>]>, P: Params<'b>>(
-    segments: S,
-    mut path: &'b str,
-    params: &'c mut P,
-) -> bool {
-    if path.len() != 0 && path.as_bytes()[0] == b'/' {
-        path = &path[1..];
+struct ContantSegmentParser;
+
+impl Tokenizer for ContantSegmentParser {
+    type Token<'a> = Segment<'a>;
+
+    fn to_token<'a>(
+        &self,
+        reader: &mut udled::Reader<'_, 'a>,
+    ) -> Result<Self::Token<'a>, udled::Error> {
+        let parser = any!(AlphaNumeric, '_', '.', '-', '~');
+
+        let start = reader.parse(&parser)?.span();
+        loop {
+            if reader.eof() {
+                break;
+            }
+
+            if !reader.peek(&parser)? {
+                break;
+            }
+
+            reader.eat(&parser)?;
+        }
+
+        let span = Span::new(start.start, reader.position());
+
+        Ok(Segment::Constant(Cow::Borrowed(
+            span.slice(reader.source()).unwrap(),
+        )))
     }
+}
 
-    let segments = segments.as_ref();
+struct ParamSegmentParser;
 
-    if path.len() == 0 && segments.len() == 0 {
-        return true;
-    } else if path.len() == 0 {
-        return false;
-    }
+impl Tokenizer for ParamSegmentParser {
+    type Token<'a> = Segment<'a>;
 
-    let mut segments = segments.iter();
-    let mut current: Option<&Segment<'_>> = None;
+    fn to_token<'a>(
+        &self,
+        reader: &mut udled::Reader<'_, 'a>,
+    ) -> Result<Self::Token<'a>, udled::Error> {
+        reader.eat(":")?;
 
-    let mut iter = into_segments(path);
+        let name = reader.parse(Ident)?;
 
-    loop {
-        let range = match iter.next() {
-            None => return current.is_some() && segments.next().is_none(),
-            Some(range) => range,
-        };
-
-        current = segments.next();
-
-        match current {
-            Some(Segment::Constant(name)) => {
-                if *name != &path[range] {
-                    return false;
-                }
-            }
-            Some(Segment::Parameter(n)) => {
-                params.set(n.clone(), (&path[range]).into());
-            }
-            Some(Segment::Star(n)) => {
-                params.set(n.clone(), (&path[range]).into());
-                return true;
-            }
-            None => return false,
-        };
+        Ok(Segment::Parameter(Cow::Borrowed(name.as_str())))
     }
 }
 
@@ -161,40 +113,7 @@ pub fn match_path<'a: 'b, 'b, 'c, S: AsRef<[Segment<'a>]>, P: Params<'b>>(
 mod test {
     use super::*;
 
-    use std::{collections::BTreeMap, string::String, string::ToString, vec};
-
-    use parser::parse;
-
-    macro_rules! segments {
-        ($url: literal => $($segs: literal),*) => {
-            assert_eq!(
-                into_segments($url).map(|m| $url[m].to_string()).collect::<Vec<_>>(),
-                vec![$($segs.to_string()),*]
-            );
-
-        };
-        ($url: literal) => {
-            assert_eq!(
-                into_segments($url).map(|m| $url[m].to_string()).collect::<Vec<_>>(),
-                Vec::<String>::default()
-            );
-
-        };
-    }
-
-    #[test]
-    fn test_into_segments() {
-        segments!("/");
-        segments!("");
-        segments!("/path" => "path");
-        segments!("path" => "path");
-        segments!("path/" => "path");
-        segments!("/path/" => "path");
-        segments!("/path/subpath" => "path", "subpath");
-        segments!("/path/subpath/" => "path", "subpath");
-        segments!("path/subpath/" => "path", "subpath");
-        segments!("https://test.com/test/path/subpath/" => "https://test.com", "test", "path", "subpath");
-    }
+    use alloc::vec;
 
     #[test]
     fn test_parse() {
@@ -267,41 +186,5 @@ mod test {
             ]
             .into()
         );
-    }
-
-    #[test]
-    fn test_match_path() {
-        assert!(match_path(
-            parse("/").expect("parse"),
-            "",
-            &mut BTreeMap::default()
-        ));
-        assert!(match_path(
-            parse("/").expect("parse"),
-            "/",
-            &mut BTreeMap::default()
-        ));
-        assert!(!match_path(
-            parse("/").expect("parse"),
-            "/withpath",
-            &mut BTreeMap::default()
-        ));
-        assert!(match_path(
-            parse("/subpath").expect("parse"),
-            "/subpath",
-            &mut BTreeMap::default()
-        ));
-        let mut params = BTreeMap::default();
-        assert!(match_path(
-            parse("/:subpath").expect("parse"),
-            "/ost",
-            &mut params
-        ));
-        assert_eq!(params.get("subpath").map(|m| m), Some(&"ost".into()));
-        assert!(!match_path(
-            parse("/:subpath").expect("parse"),
-            "/ost/boef",
-            &mut BTreeMap::default()
-        ));
     }
 }
