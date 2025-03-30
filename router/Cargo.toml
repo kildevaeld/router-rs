@@ -4,22 +4,24 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["send", "hyper"]
+# default = ["send", "hyper", "tower"]
 send = ["heather/send"]
 hyper = ["dep:hyper"]
+tower = ["dep:tower", "dep:tower-util"]
 
 [dependencies]
 routing = { path = "../routing", features = ["std"] }
-tower = { version = "0.5" }
-tower-util = { version = "0.3" }
+tower = { version = "0.5", optional = true }
+tower-util = { version = "0.3", optional = true }
 http = { version = "1" }
 
 bitflags = { version = "2" }
-futures-core = { version = "0.3" }
+futures = { version = "0.3", default-features = false }
 heather = { git = "https://github.com/kildevaeld/heather", features = [
   "std",
   "alloc",
 ] }
+pin-project-lite = { version = "0.2" }
 
 reggie = { git = "https://github.com/fairy-render/reggie" }
 

@@ -1,8 +1,6 @@
-use std::future::poll_fn;
-
 use http::{Request, Response};
 use tower::Service;
-use tower_util::{Oneshot, ServiceExt as _};
+use tower_util::ServiceExt as _;
 
 use crate::{
     error::Error,
@@ -12,7 +10,7 @@ use crate::{
 };
 
 pub trait ServiceExt<R>: Service<R> {
-    fn into_handle(self) -> ServiceHandle<Self>
+    fn into_handler(self) -> ServiceHandle<Self>
     where
         Self: Sized,
     {
@@ -32,6 +30,7 @@ where
     T::Response: IntoResponse<B>,
     B: MaybeSend + 'static,
 {
+    type Response = Response<B>;
     type Future<'a>
         = BoxFuture<'a, Result<Response<B>, Error>>
     where

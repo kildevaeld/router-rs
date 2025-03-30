@@ -3,8 +3,28 @@ use std::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Id(usize);
 
+#[derive(Debug)]
 pub struct Arena<T> {
     inner: Vec<T>,
+}
+
+impl<T> Default for Arena<T> {
+    fn default() -> Self {
+        Arena {
+            inner: Default::default(),
+        }
+    }
+}
+
+impl<T> Clone for Arena<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Arena {
+            inner: self.inner.clone(),
+        }
+    }
 }
 
 impl<T> Arena<T> {

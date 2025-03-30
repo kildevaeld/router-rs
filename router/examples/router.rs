@@ -1,6 +1,8 @@
 use std::convert::Infallible;
+use std::marker::PhantomData;
 use std::net::SocketAddr;
 
+use heather::{BoxFuture, HSend, HSendSync};
 use http_body_util::{BodyExt, Full};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
@@ -10,21 +12,60 @@ use tokio::net::TcpListener;
 
 use http::{Request, Response};
 use reggie::Body;
-use router::{Error, MethodFilter, Middleware, Router, ServiceExt};
+use router::{
+    BoxHandler, Builder, Error, Handler, MethodFilter, Middleware, ServiceExt, handle_fn,
+    middleware_fn,
+};
 
-struct TestMiddleare;
+pub struct TestHandle<T> {
+    inner: T,
+}
 
-impl<B, C, H> Middleware<B, C, H> for TestMiddleare {}
+impl<C, B, T> Handler<B, C> for TestHandle<T>
+where
+    T: Handler<B, C> + 'static,
+    C: HSendSync + 'static,
+    B: HSend + 'static,
+{
+    type Response = T::Response;
+
+    type Future<'a>
+        = BoxFuture<'a, Result<Self::Response, Error>>
+    where
+        Self: 'a,
+        C: 'a;
+
+    fn call<'a>(&'a self, context: &'a C, req: Request<B>) -> Self::Future<'a> {
+        Box::pin(async move {
+            // println!("Before");
+            let ret = self.inner.call(context, req).await?;
+            // println!("After");
+            Ok(ret)
+        })
+    }
+}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut router = Router::<(), Body>::new();
+    let mut router = Builder::<(), Body>::new();
 
     let service = tower_util::service_fn(|req: Request<Body>| async move {
         Result::<_, Error>::Ok(Response::new(Body::from("Hello, World")))
     });
 
     router.route(MethodFilter::GET, "/", service.into_handle());
+
+    router.route(
+        MethodFilter::GET | MethodFilter::POST,
+        "/nest",
+        handle_fn(|ctx, req| async move {
+            Result::<_, Error>::Ok(Response::new(reggie::Body::from("Hello, World, Some")))
+        }),
+    );
+
+    router.middleware(middleware_fn(|task: BoxHandler<Body, ()>| TestHandle {
+        inner: task,
+    }));
 
     // let ret = tokio::spawn(async move {
     //     let handle = router.get_mut("/", MethodFilter::GET).unwrap();
