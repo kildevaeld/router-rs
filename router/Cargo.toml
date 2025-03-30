@@ -1,0 +1,16 @@
+[package]
+name = "router"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+send = []
+
+[dependencies]
+routing = { path = "../routing" }
+tower = { version = "0.5" }
+tower-util = { version = "0.3" }
+http = { version = "1" }
+
+bitflags = { version = "2" }
+futures-core = { version = "0.3" }

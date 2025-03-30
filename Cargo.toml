@@ -1,21 +1,5 @@
-[package]
-edition = "2018"
-name = "router"
-version = "0.2.1"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[features]
-default = ["std"]
-std = ["id-arena/std"]
+resolver = "2"
 
-[dependencies]
-id-arena = { version = "2", default-features = false }
-udled = { version = "0.3" }
-udled-tokenizers = { version = "0.2" }
-
-[dev-dependencies]
-criterion = "0.5"
-
-[[bench]]
-harness = false
-name = "benchmark"
+members = [ "router","routing"]
