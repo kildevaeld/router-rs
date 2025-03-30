@@ -151,6 +151,50 @@ impl<H> Router<H> {
         Ok(self)
     }
 
+    fn get_route_inner<'a, S: AsSegments<'a>>(&self, path: S) -> Option<Id<Node<H>>> {
+        let mut current = self.root;
+
+        let segments = path
+            .as_segments()
+            .ok()?
+            .map(|m| m.to_owned())
+            .collect::<Vec<_>>();
+
+        'path: for segment in &segments {
+            //
+            match segment {
+                Segment::Constant(path) => {
+                    if let Some(node) = self.arena[current].constants.get(path.as_ref()) {
+                        current = *node;
+                        continue 'path;
+                    }
+
+                    return None;
+                }
+                Segment::Parameter(param) => {
+                    //
+                    if let Some(wildcard) = &self.arena[current].wildcard {
+                        // TODO: Check if names is the same
+                        current = wildcard.handle;
+                        continue 'path;
+                    } else {
+                        return None;
+                    };
+                }
+                Segment::Star(star) => {
+                    //
+                    if let Some(star) = &self.arena[current].catchall {
+                        current = star.handle;
+                    } else {
+                        return None;
+                    }
+                }
+            };
+        }
+
+        Some(current)
+    }
+
     pub fn clear(&mut self) {
         self.arena = Arena::new();
         let root = self.arena.alloc(Node::default());

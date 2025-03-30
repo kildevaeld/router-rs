@@ -37,10 +37,10 @@ pub struct Router<C, B> {
     tree: routing::Router<RouteHandler<C, B>>,
 }
 
-impl<C, B> Router<C, B> {
+impl<C: 'static, B: 'static> Router<C, B> {
     pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T)
     where
-        T: Handler<B, C>,
+        T: Handler<B, C> + 'static,
     {
     }
 }
