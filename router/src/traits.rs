@@ -1,7 +1,1 @@
-pub trait MaybeSend {}
-
-pub trait MaybeSendSync {}
-
-impl<T> MaybeSendSync for T {}
-
-impl<T> MaybeSend for T {}
+pub use heather::{BoxFuture, HSend as MaybeSend, HSendSync as MaybeSendSync};

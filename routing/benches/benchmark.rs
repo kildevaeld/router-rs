@@ -14,7 +14,7 @@ impl<'a> Route<'a> {
         })
     }
 
-    pub fn match_path<'b, P: Params<'b>>(&self, path: &'b str, params: &'b mut P) -> bool
+    pub fn match_path<'b, P: Params>(&self, path: &'b str, params: &'b mut P) -> bool
     where
         'a: 'b,
     {

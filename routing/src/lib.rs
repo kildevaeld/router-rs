@@ -5,6 +5,7 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod arena;
 mod matcher;
 mod params;
 mod parser;

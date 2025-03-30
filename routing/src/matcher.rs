@@ -50,9 +50,9 @@ pub(crate) fn into_segments<'a>(input: &'a str) -> impl Iterator<Item = Range<us
     })
 }
 
-pub fn match_path<'a: 'b, 'b, 'c, S: AsRef<[Segment<'a>]>, P: Params<'b>>(
+pub fn match_path<'a, 'c, S: AsRef<[Segment<'a>]>, P: Params>(
     segments: S,
-    mut path: &'b str,
+    mut path: &str,
     params: &'c mut P,
 ) -> bool {
     if path.len() != 0 && path.as_bytes()[0] == b'/' {

@@ -4,13 +4,34 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-send = []
+default = ["send", "hyper"]
+send = ["heather/send"]
+hyper = ["dep:hyper"]
 
 [dependencies]
-routing = { path = "../routing" }
+routing = { path = "../routing", features = ["std"] }
 tower = { version = "0.5" }
 tower-util = { version = "0.3" }
 http = { version = "1" }
 
 bitflags = { version = "2" }
 futures-core = { version = "0.3" }
+heather = { git = "https://github.com/kildevaeld/heather", features = [
+  "std",
+  "alloc",
+] }
+
+reggie = { git = "https://github.com/fairy-render/reggie" }
+
+hyper = { version = "1", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["net", "macros", "rt"] }
+hyper = { version = "1", features = ["server", "http1"] }
+http-body-util = "0.1"
+hyper-util = { version = "0.1", features = ["full"] }
+
+[[example]]
+name = "router"
+path = "examples/router.rs"
+required-features = ["hyper"]

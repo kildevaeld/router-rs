@@ -1,11 +1,11 @@
 use super::{AsSegments, Params, Segment, Segments};
+use crate::arena::{Arena, Id};
 use crate::matcher::into_segments;
 use alloc::{
     collections::btree_map::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
-use id_arena::{Arena, Id};
 
 #[derive(Debug, Clone)]
 pub struct Route<'a, H> {
@@ -233,14 +233,13 @@ impl<H> Router<H> {
         Ok(())
     }
 
-    pub fn match_path<'a: 'b, 'b, 'c, P: Params<'b>>(
-        &'a self,
-        path: &'b str,
+    fn match_path_inner<'b, 'c, P: Params>(
+        &self,
+        path: &str,
         params: &'c mut P,
-    ) -> Option<&'a H> {
+    ) -> Option<Id<Node<H>>> {
         let mut current_node = self.root;
-        let mut catch_all: Option<&'a Named<Id<Node<H>>>> =
-            self.arena[current_node].catchall.as_ref();
+        let mut catch_all = self.arena[current_node].catchall.as_ref();
 
         let segments = into_segments(path);
 
@@ -260,23 +259,41 @@ impl<H> Router<H> {
             } else if let Some(catch) = catch_all {
                 let star = &path[seg.start..];
                 params.set((&catch.name).into(), star.into());
-                let catch = &self.arena[catch.handle];
-                return catch.handle.as_ref();
+                // let catch = &self.arena[catch.handle];
+                return Some(catch.handle);
             } else {
                 return None;
             }
         }
 
         if let Some(handle) = self.arena[current_node].handle.as_ref() {
-            return Some(handle);
+            return Some(current_node);
         } else if let Some(catch) = catch_all {
             let star = &path[start..];
             params.set((&catch.name).into(), star.into());
-            let catch = &self.arena[catch.handle];
-            return catch.handle.as_ref();
+            // let catch = &self.arena[catch.handle];
+            return Some(catch.handle);
         } else {
             return None;
         }
+    }
+
+    pub fn match_path<'a, 'c, P: Params>(&'a self, path: &str, params: &'c mut P) -> Option<&'a H> {
+        let found = self.match_path_inner(path, params)?;
+        self.arena[found].handle.as_ref()
+    }
+
+    pub fn match_path_mut<'a, 'c, P: Params>(
+        &'a mut self,
+        path: &str,
+        params: &'c mut P,
+    ) -> Option<&'a mut H> {
+        let found = self.match_path_inner(path, params)?;
+        self.arena[found].handle.as_mut()
+    }
+
+    pub fn map<F, V>(self, mapper: F) -> Route<'a, V> {
+        self.arena.into_iter().map(|m| {})
     }
 }
 
