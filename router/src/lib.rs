@@ -1,8 +1,9 @@
-use handler::{BoxHandler, Handler};
+use handler::{BoxHandler, Handler, box_handler};
 use http::{Method, Request, Response};
 use tower::Service;
 
 mod handler;
+mod traits;
 struct Error {}
 
 #[cfg(not(feature = "send"))]
@@ -38,9 +39,28 @@ pub struct Router<C, B> {
 }
 
 impl<C: 'static, B: 'static> Router<C, B> {
-    pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T)
+    pub fn new() -> Router<C, B> {
+        Router {
+            tree: routing::Router::new(),
+        }
+    }
+    pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
     {
+        if self.tree.get_route(path).is_some() {
+            panic!("Route already defined")
+        }
+
+        self.tree.register(
+            path,
+            RouteHandler {
+                method,
+                handler: box_handler(handler),
+                name: None,
+            },
+        );
+
+        Ok(())
     }
 }

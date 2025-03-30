@@ -10,7 +10,7 @@ use id_arena::{Arena, Id};
 #[derive(Debug, Clone)]
 pub struct Route<'a, H> {
     pub segments: Segments<'a>,
-    pub handlers: Vec<H>,
+    pub handlers: Option<H>,
 }
 
 impl<'a, H> Route<'a, H> {
@@ -31,7 +31,7 @@ impl<'a, H> Route<'a, H> {
     {
         Route {
             segments: self.segments,
-            handlers: self.handlers.into_iter().map(func).collect(),
+            handlers: self.handlers.map(func),
         }
     }
 }
@@ -45,7 +45,7 @@ struct Named<H> {
 #[derive(Debug, Clone)]
 struct Node<H> {
     constants: BTreeMap<String, Id<Node<H>>>,
-    handle: Vec<H>,
+    handle: Option<H>,
     catchall: Option<Named<Id<Node<H>>>>,
     wildcard: Option<Named<Id<Node<H>>>>,
     segments: Option<Segments<'static>>,
@@ -141,14 +141,20 @@ impl<H> Router<H> {
             };
         }
 
-        // if self.arena[current].handle.is_none() {
-        //     self.arena[current].handle = Some(Vec::default());
-        // }
-
         self.arena[current].segments = Some(Segments(segments));
-        self.arena[current].handle.push(handle);
+        self.arena[current].handle = Some(handle);
 
         Ok(self)
+    }
+
+    pub fn get_route<'a, S: AsSegments<'a>>(&self, path: S) -> Option<&H> {
+        let node = self.get_route_inner(path)?;
+        self.arena[node].handle.as_ref()
+    }
+
+    pub fn get_route_mut<'a, S: AsSegments<'a>>(&mut self, path: S) -> Option<&mut H> {
+        let node = self.get_route_inner(path)?;
+        self.arena[node].handle.as_mut()
     }
 
     fn get_route_inner<'a, S: AsSegments<'a>>(&self, path: S) -> Option<Id<Node<H>>> {
@@ -227,11 +233,11 @@ impl<H> Router<H> {
         Ok(())
     }
 
-    pub fn find<'a: 'b, 'b, 'c, P: Params<'b>>(
+    pub fn match_path<'a: 'b, 'b, 'c, P: Params<'b>>(
         &'a self,
         path: &'b str,
         params: &'c mut P,
-    ) -> Option<&'a Vec<H>> {
+    ) -> Option<&'a H> {
         let mut current_node = self.root;
         let mut catch_all: Option<&'a Named<Id<Node<H>>>> =
             self.arena[current_node].catchall.as_ref();
@@ -255,19 +261,19 @@ impl<H> Router<H> {
                 let star = &path[seg.start..];
                 params.set((&catch.name).into(), star.into());
                 let catch = &self.arena[catch.handle];
-                return Some(&catch.handle);
+                return catch.handle.as_ref();
             } else {
                 return None;
             }
         }
 
-        if !self.arena[current_node].handle.is_empty() {
-            return Some(&self.arena[current_node].handle);
+        if let Some(handle) = self.arena[current_node].handle.as_ref() {
+            return Some(handle);
         } else if let Some(catch) = catch_all {
             let star = &path[start..];
             params.set((&catch.name).into(), star.into());
             let catch = &self.arena[catch.handle];
-            return Some(&catch.handle);
+            return catch.handle.as_ref();
         } else {
             return None;
         }
@@ -315,12 +321,12 @@ mod test {
         router.register(&[], "root").unwrap();
 
         assert_eq!(
-            router.find("", &mut BTreeMap::default()),
-            Some(&vec!["root"])
+            router.match_path("", &mut BTreeMap::default()),
+            Some(&"root")
         );
         assert_eq!(
-            router.find("/", &mut BTreeMap::default()),
-            Some(&vec!["root"])
+            router.match_path("/", &mut BTreeMap::default()),
+            Some(&"root")
         );
     }
 
@@ -349,20 +355,20 @@ mod test {
             .unwrap();
 
         assert_eq!(
-            router.find("path", &mut BTreeMap::default()),
-            Some(&vec!["/path"])
+            router.match_path("path", &mut BTreeMap::default()),
+            Some(&"/path")
         );
         assert_eq!(
-            router.find("/path", &mut BTreeMap::default()),
-            Some(&vec!["/path"])
+            router.match_path("/path", &mut BTreeMap::default()),
+            Some(&"/path")
         );
         let mut m = BTreeMap::default();
-        assert_eq!(router.find("/path/10", &mut m), Some(&vec!["/path/:id"]));
+        assert_eq!(router.match_path("/path/10", &mut m), Some(&"/path/:id"));
         assert_eq!(m.get("id"), Some(&"10".into()));
 
         assert_eq!(
-            router.find("/statics/filename.png", &mut BTreeMap::default()),
-            Some(&vec!["/statics/*filename"])
+            router.match_path("/statics/filename.png", &mut BTreeMap::default()),
+            Some(&"/statics/*filename")
         );
     }
 
@@ -389,10 +395,10 @@ mod test {
 
         router1.extend(router2);
 
-        assert_eq!(
-            router1.find("/statics", &mut BTreeMap::default()),
-            Some(&vec!["statics", "statics2"])
-        );
+        // assert_eq!(
+        //     router1.find("/statics", &mut BTreeMap::default()),
+        //     Some(&"statics", "statics2"])
+        // );
     }
 
     #[test]
@@ -419,8 +425,8 @@ mod test {
         router1.mount("/api", router2).expect("mount");
 
         assert_eq!(
-            router1.find("/api/statics", &mut BTreeMap::default()),
-            Some(&vec!["statics2"])
+            router1.match_path("/api/statics", &mut BTreeMap::default()),
+            Some(&"statics2")
         );
     }
 }

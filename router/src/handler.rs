@@ -3,7 +3,10 @@ use std::{marker::PhantomData, process::Output};
 use futures_core::future;
 use http::{Request, Response};
 
-use crate::Error;
+use crate::{
+    Error,
+    traits::{MaybeSend, MaybeSendSync},
+};
 
 #[cfg(feature = "send")]
 pub type BoxFuture<'a, T> = future::BoxFuture<'a, T>;
@@ -11,8 +14,8 @@ pub type BoxFuture<'a, T> = future::BoxFuture<'a, T>;
 #[cfg(not(feature = "send"))]
 pub type BoxFuture<'a, T> = future::LocalBoxFuture<'a, T>;
 
-pub trait Handler<B, C> {
-    type Future<'a>: Future<Output = Result<Response<B>, Error>>
+pub trait Handler<B, C>: MaybeSendSync {
+    type Future<'a>: Future<Output = Result<Response<B>, Error>> + MaybeSend
     where
         Self: 'a,
         C: 'a;

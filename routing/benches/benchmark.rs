@@ -28,8 +28,8 @@ impl<'a> Route<'a> {
     }
 }
 
-fn find<'a>(graph: &'a Router<String>, path: &str) -> Option<&'a Vec<String>> {
-    graph.find(path, &mut BTreeMap::default())
+fn find<'a>(graph: &'a Router<String>, path: &str) -> Option<&'a String> {
+    graph.match_path(path, &mut BTreeMap::default())
 }
 
 fn find2<'a>(routes: &Vec<Route<'static>>, path: &str) -> Option<usize> {
