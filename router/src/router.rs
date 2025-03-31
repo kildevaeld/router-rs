@@ -53,14 +53,14 @@ pub struct RouteHandler<C, B> {
 }
 
 pub struct Builder<C, B> {
-    tree: routing::Router<RouteHandler<C, B>>,
+    tree: routing::PathRouter<RouteHandler<C, B>>,
     middlewares: Vec<BoxMiddleware<B, C, BoxHandler<B, C>>>,
 }
 
 impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
     pub fn new() -> Builder<C, B> {
         Builder {
-            tree: routing::Router::new(),
+            tree: routing::PathRouter::new(),
             middlewares: Default::default(),
         }
     }
@@ -148,7 +148,7 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
 }
 
 pub struct Router<C, B> {
-    tree: routing::Router<RouteHandler<C, B>>,
+    tree: routing::PathRouter<RouteHandler<C, B>>,
 }
 
 impl<C, B> Router<C, B> {

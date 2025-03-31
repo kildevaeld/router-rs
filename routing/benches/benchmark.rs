@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use routing::{match_path, parse, Params, ParseError, Router, Segment, Segments};
+use routing::{match_path, parse, Params, ParseError, PathRouter, Segment, Segments};
 use std::{collections::BTreeMap, vec::Vec};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -28,7 +28,7 @@ impl<'a> Route<'a> {
     }
 }
 
-fn find<'a>(graph: &'a Router<String>, path: &str) -> Option<&'a String> {
+fn find<'a>(graph: &'a PathRouter<String>, path: &str) -> Option<&'a String> {
     graph.match_path(path, &mut BTreeMap::default())
 }
 
@@ -43,7 +43,7 @@ fn find2<'a>(routes: &Vec<Route<'static>>, path: &str) -> Option<usize> {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut graph = Router::new();
+    let mut graph = PathRouter::new();
     let mut routes = Vec::new();
     for i in 0..10000 {
         graph

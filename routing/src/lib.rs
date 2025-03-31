@@ -9,7 +9,7 @@ mod arena;
 mod matcher;
 mod params;
 mod parser;
-pub mod router;
+pub mod path_router;
 mod segment;
 mod segments;
 
@@ -19,7 +19,10 @@ pub use self::{
     matcher::*,
     params::Params,
     parser::parse,
-    router::{Route, Router},
+    path_router::{PathRouter, Route},
     segment::Segment,
     segments::*,
 };
+
+#[cfg(feature = "router")]
+pub mod router;

@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, fmt, string::ToString};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Segment<'a> {
     Constant(Cow<'a, str>),
     Parameter(Cow<'a, str>),

@@ -7,7 +7,7 @@ use alloc::{
     vec::{IntoIter, Vec},
 };
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Segments<'a>(pub(crate) Vec<Segment<'a>>);
 
 impl<'a> Segments<'a> {
