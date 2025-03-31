@@ -46,6 +46,10 @@ impl<T> Arena<T> {
             inner: self.inner.into_iter().map(mapper).collect(),
         }
     }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, T> {
+        self.inner.iter()
+    }
 }
 
 impl<T> core::ops::Index<Id> for Arena<T> {

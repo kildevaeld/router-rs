@@ -83,6 +83,15 @@ impl<H> Router<H> {
     //         .map(|m| m.1.segments.as_ref().unwrap())
     // }
 
+    pub fn routes(&self) -> impl Iterator<Item = (&Segments<'_>, &H)> {
+        self.arena
+            .iter()
+            .filter_map(|m| match (&m.segments, &m.handle) {
+                (Some(s), Some(h)) => Some((s, h)),
+                _ => None,
+            })
+    }
+
     pub fn register<'a, S: AsSegments<'a> + 'a>(
         &mut self,
         path: S,
@@ -337,7 +346,6 @@ impl<H> Router<H> {
 mod test {
     pub use super::*;
     use alloc::collections::BTreeMap;
-    
 
     #[test]
     fn test() {
