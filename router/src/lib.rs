@@ -1,5 +1,5 @@
 mod error;
-mod func;
+// mod func;
 mod handler;
 mod handler_fn;
 mod into_response;
@@ -10,12 +10,14 @@ mod router;
 mod service_ext;
 mod traits;
 
-pub use self::error::Error;
-pub use self::handler::{BoxHandler, Handler};
-pub use self::handler_fn::{HandleFn, handle_fn};
-pub use self::into_response::IntoResponse;
-pub use self::middleware::Middleware;
-pub use self::middleware_fn::{MiddlewareFn, middleware_fn};
-pub use self::router::{Builder, MethodFilter};
 #[cfg(feature = "tower")]
 pub use self::service_ext::ServiceExt;
+pub use self::{
+    error::Error,
+    handler::{BoxHandler, Handler},
+    handler_fn::{HandleFn, handle_fn},
+    into_response::IntoResponse,
+    middleware::Middleware,
+    middleware_fn::{MiddlewareFn, middleware_fn},
+    router::{Builder, MethodFilter},
+};
