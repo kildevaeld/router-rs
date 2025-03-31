@@ -58,13 +58,13 @@ impl From<Method> for MethodFilter {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Entry<H> {
-    method: MethodFilter,
-    handler: H,
+pub struct Entry<H> {
+    pub method: MethodFilter,
+    pub handler: H,
 }
 
-struct Route<H> {
-    entries: Vec<Entry<H>>,
+pub struct Route<H> {
+    pub entries: Vec<Entry<H>>,
 }
 
 pub struct Router<H> {
@@ -76,6 +76,10 @@ impl<H> Router<H> {
         Router {
             inner: PathRouter::new(),
         }
+    }
+
+    pub fn routes(&self) -> impl Iterator<Item = (&crate::Segments<'_>, &Route<H>)> {
+        self.inner.routes()
     }
 
     pub fn route(
