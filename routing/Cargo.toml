@@ -1,7 +1,7 @@
 [package]
 edition = "2018"
 name = "routing"
-version = "0.2.1"
+version = "0.3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
