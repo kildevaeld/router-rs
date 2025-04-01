@@ -19,5 +19,5 @@ pub use self::{
     into_response::IntoResponse,
     middleware::Middleware,
     middleware_fn::{MiddlewareFn, middleware_fn},
-    router::{Builder, MethodFilter},
+    router::Builder,
 };

@@ -30,3 +30,9 @@ impl From<routing::ParseError> for Error {
         Error::new(value)
     }
 }
+
+impl From<routing::router::RouteError> for Error {
+    fn from(value: routing::router::RouteError) -> Self {
+        Error::new(value)
+    }
+}

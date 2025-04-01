@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 pub use crate::error::Error;
 use crate::traits::{MaybeSend, MaybeSendSync};
 use crate::{
@@ -6,61 +9,20 @@ use crate::{
 };
 #[cfg(feature = "tower")]
 use heather::{BoxFuture, Hrc};
-use http::Method;
 #[cfg(feature = "tower")]
 use http::{Request, Response};
-
-bitflags::bitflags! {
-    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct MethodFilter: u8 {
-       const GET = 1 << 0;
-       const POST = 1 << 1;
-       const PUT = 1 << 2;
-       const PATCH = 1 << 3;
-       const DELETE = 1 << 4;
-       const HEAD = 1 << 5;
-    }
-}
-
-impl MethodFilter {
-    pub fn any() -> MethodFilter {
-        MethodFilter::all()
-    }
-}
-
-impl From<Method> for MethodFilter {
-    fn from(value: Method) -> Self {
-        match value {
-            Method::GET => MethodFilter::GET,
-            Method::POST => MethodFilter::POST,
-            Method::PATCH => MethodFilter::PATCH,
-            Method::PUT => MethodFilter::PUT,
-            Method::DELETE => MethodFilter::DELETE,
-            Method::HEAD => MethodFilter::HEAD,
-            _ => todo!(),
-        }
-    }
-}
-
-struct Pair<B, C> {
-    method: MethodFilter,
-    handle: BoxHandler<B, C>,
-}
-
-pub struct RouteHandler<C, B> {
-    handlers: Vec<Pair<B, C>>,
-    name: Option<String>,
-}
+use routing::Params;
+use routing::router::MethodFilter;
 
 pub struct Builder<C, B> {
-    tree: routing::PathRouter<RouteHandler<C, B>>,
+    tree: routing::router::Router<BoxHandler<B, C>>,
     middlewares: Vec<BoxMiddleware<B, C, BoxHandler<B, C>>>,
 }
 
 impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
     pub fn new() -> Builder<C, B> {
         Builder {
-            tree: routing::PathRouter::new(),
+            tree: routing::router::Router::new(),
             middlewares: Default::default(),
         }
     }
@@ -69,33 +31,7 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
     where
         T: Handler<B, C> + 'static,
     {
-        if let Some(route) = self.tree.get_route_mut(path) {
-            if route
-                .handlers
-                .iter()
-                .find(|m| m.method.contains(method))
-                .is_some()
-            {
-                panic!("Route already defined")
-            }
-
-            route.handlers.push(Pair {
-                method,
-                handle: box_handler(handler),
-            });
-        } else {
-            self.tree.register(
-                path,
-                RouteHandler {
-                    handlers: vec![Pair {
-                        method: method,
-                        handle: box_handler(handler),
-                    }],
-                    name: None,
-                },
-            )?;
-        }
-
+        self.tree.route(method, path, box_handler(handler))?;
         Ok(())
     }
 
@@ -107,39 +43,18 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         Ok(())
     }
 
-    pub fn get(&self, path: &str, method: MethodFilter) -> Option<&BoxHandler<B, C>> {
-        self.tree.match_path(path, &mut ()).and_then(|m| {
-            m.handlers.iter().find_map(|m| {
-                if m.method.contains(method) {
-                    Some(&m.handle)
-                } else {
-                    None
-                }
-            })
-        })
+    pub fn match_route<P: Params>(
+        &self,
+        path: &str,
+        method: MethodFilter,
+        params: &mut P,
+    ) -> Option<&BoxHandler<B, C>> {
+        self.tree.match_route(path, method, params)
     }
 
     #[cfg(feature = "tower")]
     pub fn into_service(self, context: C) -> RouterService<C, B> {
-        let router = self.tree.map(|route| {
-            let handlers = route
-                .handlers
-                .into_iter()
-                .map(|m| {
-                    //
-                    Pair {
-                        method: m.method,
-                        handle: compile(&self.middlewares, m.handle),
-                    }
-                })
-                .collect();
-
-            RouteHandler {
-                handlers,
-                name: route.name,
-            }
-        });
-
+        let router = self.tree.map(|m| compile(&self.middlewares, m));
         RouterService {
             router: Router { tree: router }.into(),
             context,
@@ -148,20 +63,17 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
 }
 
 pub struct Router<C, B> {
-    tree: routing::PathRouter<RouteHandler<C, B>>,
+    tree: routing::router::Router<BoxHandler<B, C>>,
 }
 
 impl<C, B> Router<C, B> {
-    pub fn get(&self, path: &str, method: MethodFilter) -> Option<&BoxHandler<B, C>> {
-        self.tree.match_path(path, &mut ()).and_then(|m| {
-            m.handlers.iter().find_map(|m| {
-                if m.method.contains(method) {
-                    Some(&m.handle)
-                } else {
-                    None
-                }
-            })
-        })
+    pub fn match_path<P: Params>(
+        &self,
+        path: &str,
+        method: MethodFilter,
+        params: &mut P,
+    ) -> Option<&BoxHandler<B, C>> {
+        self.tree.match_route(path, method, params)
     }
 }
 
@@ -213,7 +125,39 @@ where
         let context = self.context.clone();
         Box::pin(async move {
             //
-            let Some(handle) = router.get(req.uri().path(), req.method().clone().into()) else {
+            let mut params = HashMap::<Arc<str>, Arc<str>>::default();
+            let Some(handle) =
+                router.match_path(req.uri().path(), req.method().clone().into(), &mut params)
+            else {
+                todo!()
+            };
+
+            handle.call(&context, req).await
+        })
+    }
+}
+
+#[cfg(feature = "hyper")]
+impl<C, B> hyper::service::Service<Request<B>> for RouterService<C, B>
+where
+    B: MaybeSend + 'static,
+    C: Clone + MaybeSendSync + 'static,
+{
+    type Response = Response<B>;
+
+    type Error = Error;
+
+    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    fn call(&self, req: Request<B>) -> Self::Future {
+        let router = self.router.clone();
+        let context = self.context.clone();
+        Box::pin(async move {
+            //
+            let mut params = HashMap::<Arc<str>, Arc<str>>::default();
+            let Some(handle) =
+                router.match_path(req.uri().path(), req.method().clone().into(), &mut params)
+            else {
                 todo!()
             };
 

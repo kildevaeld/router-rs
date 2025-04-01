@@ -1,3 +1,6 @@
+#[cfg(feature = "std")]
+use std::sync::Arc;
+
 use alloc::string::String;
 
 use alloc::{borrow::Cow, collections::btree_map::BTreeMap};
@@ -37,6 +40,13 @@ impl Params for BTreeMap<String, String> {
 impl Params for std::collections::HashMap<String, String> {
     fn set(&mut self, key: Cow<'_, str>, value: Cow<'_, str>) {
         self.insert(key.into_owned(), value.into_owned());
+    }
+}
+
+#[cfg(feature = "std")]
+impl Params for std::collections::HashMap<Arc<str>, Arc<str>> {
+    fn set(&mut self, key: Cow<'_, str>, value: Cow<'_, str>) {
+        self.insert(key.into(), value.into());
     }
 }
 

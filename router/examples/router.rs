@@ -8,13 +8,13 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{body::Bytes, service::Service};
 use hyper_util::{rt::TokioIo, service::TowerToHyperService};
+use routing::router::MethodFilter;
 use tokio::net::TcpListener;
 
 use http::{Request, Response};
 use reggie::Body;
 use router::{
-    BoxHandler, Builder, Error, Handler, MethodFilter, Middleware, ServiceExt, handle_fn,
-    middleware_fn,
+    BoxHandler, Builder, Error, Handler, Middleware, ServiceExt, handle_fn, middleware_fn,
 };
 
 pub struct TestHandle<T> {

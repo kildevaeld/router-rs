@@ -82,6 +82,24 @@ impl<H> Router<H> {
         self.inner.routes()
     }
 
+    pub fn map<T, U>(self, mapper: T) -> Router<U>
+    where
+        T: Fn(H) -> U + Copy,
+    {
+        Router {
+            inner: self.inner.map(move |route| Route {
+                entries: route
+                    .entries
+                    .into_iter()
+                    .map(move |m| Entry {
+                        handler: mapper(m.handler),
+                        method: m.method,
+                    })
+                    .collect(),
+            }),
+        }
+    }
+
     pub fn route(
         &mut self,
         method: MethodFilter,
