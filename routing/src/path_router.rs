@@ -76,7 +76,7 @@ impl<H> PathRouter<H> {
         PathRouter { arena, root }
     }
 
-    pub fn routes(&self) -> impl Iterator<Item = (&Segments<'_>, &H)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Segments<'_>, &H)> {
         self.arena
             .iter()
             .filter_map(|m| match (&m.segments, &m.handle) {
@@ -179,7 +179,7 @@ impl<H> PathRouter<H> {
 
                     return None;
                 }
-                Segment::Parameter(param) => {
+                Segment::Parameter(_) => {
                     //
                     if let Some(wildcard) = &self.arena[current].wildcard {
                         // TODO: Check if names is the same
@@ -189,7 +189,7 @@ impl<H> PathRouter<H> {
                         return None;
                     };
                 }
-                Segment::Star(star) => {
+                Segment::Star(_) => {
                     //
                     if let Some(star) = &self.arena[current].catchall {
                         current = star.handle;
@@ -209,27 +209,22 @@ impl<H> PathRouter<H> {
         self.root = root;
     }
 
-    // pub fn extend<'a, R: IntoIterator<Item = Route<'a, H>>>(&mut self, router: R) {
-    //     for route in router {
-    //         for handle in route.handlers {
-    //             self.register(route.segments.clone(), handle)
-    //                 .expect("register");
-    //         }
-    //     }
-    // }
+    pub fn merge<'a>(&mut self, router: PathRouter<H>) {
+        for (path, handler) in router {
+            self.register(path, handler).expect("register");
+        }
+    }
 
-    pub fn mount<'a, 'b, S: AsSegments<'a>, R: IntoIterator<Item = Route<'b, H>>>(
+    pub fn mount<'a, 'b, S: AsSegments<'a>>(
         &mut self,
         path: S,
-        router: R,
+        router: PathRouter<H>,
     ) -> Result<(), S::Error> {
-        let segments = path.as_segments()?.collect::<Vec<_>>();
-        for route in router {
-            let mut segments = segments.clone();
-            segments.extend(route.segments);
-            if let Some(handle) = route.handlers {
-                self.register(segments.clone(), handle).expect("register");
-            }
+        let mount = path.as_segments()?.collect::<Vec<_>>();
+        for (path, handler) in router {
+            let mut mount = mount.clone();
+            mount.extend(path);
+            self.register(mount, handler).expect("register");
         }
 
         Ok(())
@@ -257,7 +252,6 @@ impl<H> PathRouter<H> {
             } else if let Some(catch) = catch_all {
                 let star = &path[seg.start..];
                 params.set((&catch.name).into(), star.into());
-                // let catch = &self.arena[catch.handle];
                 return Some(catch.handle);
             } else {
                 return None;
@@ -269,7 +263,6 @@ impl<H> PathRouter<H> {
         } else if let Some(catch) = catch_all {
             let star = &path[start..];
             params.set((&catch.name).into(), star.into());
-            // let catch = &self.arena[catch.handle];
             return Some(catch.handle);
         } else {
             return None;
@@ -307,33 +300,31 @@ impl<H> PathRouter<H> {
     }
 }
 
-// impl<'a, H> IntoIterator for Router<H> {
-//     type IntoIter = IntoIter<H>;
-//     type Item = Route<'static, H>;
-//     fn into_iter(self) -> Self::IntoIter {
-//         IntoIter(self.arena.into_iter())
-//     }
-// }
+impl<'a, H> IntoIterator for PathRouter<H> {
+    type IntoIter = IntoIter<H>;
+    type Item = (Segments<'static>, H);
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self.arena.into_iter())
+    }
+}
 
-// pub struct IntoIter<H>(id_arena::IntoIter<Node<H>, id_arena::DefaultArenaBehavior<Node<H>>>);
+pub struct IntoIter<H>(alloc::vec::IntoIter<Node<H>>);
 
-// impl<H> Iterator for IntoIter<H> {
-//     type Item = Route<'static, H>;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         loop {
-//             let Some((_, next)) = self.0.next() else {
-//                 return None;
-//             };
+impl<H> Iterator for IntoIter<H> {
+    type Item = (Segments<'static>, H);
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let Some(next) = self.0.next() else {
+                return None;
+            };
 
-//             if let Some(segments) = next.segments {
-//                 return Some(Route {
-//                     handlers: next.handle,
-//                     segments,
-//                 });
-//             }
-//         }
-//     }
-// }
+            match (next.segments, next.handle) {
+                (Some(segments), Some(handle)) => return Some((segments, handle)),
+                _ => {}
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {

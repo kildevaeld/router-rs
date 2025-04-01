@@ -50,6 +50,10 @@ impl<T> Arena<T> {
     pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.inner.iter()
     }
+
+    pub fn into_iter(self) -> alloc::vec::IntoIter<T> {
+        self.inner.into_iter()
+    }
 }
 
 impl<T> core::ops::Index<Id> for Arena<T> {

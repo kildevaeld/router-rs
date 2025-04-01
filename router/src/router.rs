@@ -27,6 +27,16 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         }
     }
 
+    pub fn mount(&mut self, path: &str, router: impl Into<Router<C, B>>) {
+        let router = router.into();
+        self.tree.mount(path, router.tree);
+    }
+
+    pub fn merge(&mut self, router: impl Into<Router<C, B>>) {
+        let router = router.into();
+        self.tree.merge(router.tree);
+    }
+
     pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
@@ -36,6 +46,14 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
     }
 
     pub fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
+    where
+        M: Middleware<B, C, BoxHandler<B, C>> + 'static,
+    {
+        self.middlewares.push(box_middleware(middleware).into());
+        Ok(())
+    }
+
+    pub fn middleware_path<M>(&mut self, path: &str, middleware: M) -> Result<(), Error>
     where
         M: Middleware<B, C, BoxHandler<B, C>> + 'static,
     {
@@ -54,11 +72,17 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
 
     #[cfg(feature = "tower")]
     pub fn into_service(self, context: C) -> RouterService<C, B> {
-        let router = self.tree.map(|m| compile(&self.middlewares, m));
         RouterService {
-            router: Router { tree: router }.into(),
+            router: Arc::new(self.into()),
             context,
         }
+    }
+}
+
+impl<C, B> From<Builder<C, B>> for Router<C, B> {
+    fn from(value: Builder<C, B>) -> Self {
+        let tree = value.tree.map(|m| compile(&value.middlewares, m));
+        Router { tree }
     }
 }
 

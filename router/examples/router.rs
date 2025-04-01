@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Result::<_, Error>::Ok(Response::new(Body::from("Hello, World")))
     });
 
-    router.route(MethodFilter::GET, "/", service.into_handle());
+    router.route(MethodFilter::GET, "/", service.into_handler());
 
     router.route(
         MethodFilter::GET | MethodFilter::POST,

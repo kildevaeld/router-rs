@@ -5,7 +5,7 @@ use alloc::{vec, vec::Vec};
 
 use http::Method;
 
-use crate::{Params, PathRouter};
+use crate::{AsSegments, Params, PathRouter};
 
 #[derive(Debug)]
 pub struct RouteError {
@@ -79,7 +79,7 @@ impl<H> Router<H> {
     }
 
     pub fn routes(&self) -> impl Iterator<Item = (&crate::Segments<'_>, &Route<H>)> {
-        self.inner.routes()
+        self.inner.iter()
     }
 
     pub fn map<T, U>(self, mapper: T) -> Router<U>
@@ -98,6 +98,20 @@ impl<H> Router<H> {
                     .collect(),
             }),
         }
+    }
+
+    pub fn mount<'a, S: AsSegments<'a>>(
+        &mut self,
+        path: S,
+        router: Router<H>,
+    ) -> Result<(), RouteError> {
+        self.inner.mount(path, router.inner);
+        Ok(())
+    }
+
+    pub fn merge(&mut self, router: Router<H>) -> Result<(), RouteError> {
+        self.inner.merge(router.inner);
+        Ok(())
     }
 
     pub fn route(
