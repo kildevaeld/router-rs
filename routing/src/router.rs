@@ -78,7 +78,7 @@ impl<H> Router<H> {
         }
     }
 
-    pub fn routes(&self) -> impl Iterator<Item = (&crate::Segments<'_>, &Route<H>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&crate::Segments<'_>, &Route<H>)> {
         self.inner.iter()
     }
 
