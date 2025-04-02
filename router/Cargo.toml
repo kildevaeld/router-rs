@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["send", "hyper", "tower"]
+default = []
 send = ["heather/send"]
 hyper = ["dep:hyper"]
 tower = ["dep:tower", "dep:tower-util"]
