@@ -63,10 +63,12 @@ pub struct Entry<H> {
     pub handler: H,
 }
 
+#[derive(Debug, Clone)]
 pub struct Route<H> {
     pub entries: Vec<Entry<H>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Router<H> {
     inner: PathRouter<Route<H>>,
 }
