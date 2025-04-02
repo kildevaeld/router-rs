@@ -77,6 +77,15 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
             context,
         }
     }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        routing::router::Router<BoxHandler<B, C>>,
+        Vec<BoxMiddleware<B, C, BoxHandler<B, C>>>,
+    ) {
+        (self.tree, self.middlewares)
+    }
 }
 
 impl<C, B> From<Builder<C, B>> for Router<C, B> {
