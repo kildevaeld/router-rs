@@ -101,7 +101,6 @@ impl<C, B> Router<C, B> {
     }
 }
 
-#[cfg(feature = "tower")]
 pub fn compile<B, C>(
     middlewares: &[BoxMiddleware<B, C, BoxHandler<B, C>>],
     task: BoxHandler<B, C>,
