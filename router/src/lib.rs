@@ -17,7 +17,7 @@ pub use self::{
     handler::{BoxHandler, Handler},
     handler_fn::{HandleFn, handle_fn},
     into_response::IntoResponse,
-    middleware::Middleware,
+    middleware::{BoxMiddleware, Middleware},
     middleware_fn::{MiddlewareFn, middleware_fn},
     router::Builder,
 };
