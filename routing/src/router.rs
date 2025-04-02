@@ -1,5 +1,5 @@
-use core::fmt;
-use std::boxed::Box;
+use core::{fmt, str::FromStr};
+use std::{boxed::Box, format};
 
 use alloc::{vec, vec::Vec};
 
@@ -10,6 +10,14 @@ use crate::{AsSegments, Params, PathRouter};
 #[derive(Debug)]
 pub struct RouteError {
     inner: Box<dyn std::error::Error + Send + Sync>,
+}
+
+impl RouteError {
+    pub fn new<T: Into<Box<dyn std::error::Error + Send + Sync>>>(error: T) -> RouteError {
+        RouteError {
+            inner: error.into(),
+        }
+    }
 }
 
 impl fmt::Display for RouteError {
@@ -40,6 +48,23 @@ bitflags::bitflags! {
 impl MethodFilter {
     pub fn any() -> MethodFilter {
         MethodFilter::all()
+    }
+}
+
+impl FromStr for MethodFilter {
+    type Err = RouteError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let ret = match s {
+            "GET" => MethodFilter::GET,
+            "POST" => MethodFilter::POST,
+            "PATCH" => MethodFilter::PATCH,
+            "PUT" => MethodFilter::PUT,
+            "DELETE" => MethodFilter::DELETE,
+            "HEAD" => MethodFilter::HEAD,
+            _ => return Err(RouteError::new(format!("Unknown method: '{s}'"))),
+        };
+
+        Ok(ret)
     }
 }
 
