@@ -81,7 +81,7 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
 
 impl<C, B> From<Builder<C, B>> for Router<C, B> {
     fn from(value: Builder<C, B>) -> Self {
-        let tree = value.tree.map(|m| compose(&value.middlewares, m));
+        let tree = value.tree.map(|m| compile(&value.middlewares, m));
         Router { tree }
     }
 }
@@ -101,7 +101,7 @@ impl<C, B> Router<C, B> {
     }
 }
 
-pub fn compose<B, C>(
+pub fn compile<B, C>(
     middlewares: &[BoxMiddleware<B, C, BoxHandler<B, C>>],
     task: BoxHandler<B, C>,
 ) -> BoxHandler<B, C> {
