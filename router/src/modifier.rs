@@ -1,7 +1,7 @@
 use crate::{Error, Handler, IntoResponse, Middleware, traits::*};
 use heather::Hrc;
 use http::{Request, Response};
-use std::{convert::Infallible, future::Future, pin::Pin, sync::Arc};
+use std::future::Future;
 #[cfg(feature = "tower")]
 use tower::{Layer, Service};
 

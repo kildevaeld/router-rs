@@ -1,9 +1,11 @@
 use std::marker::PhantomData;
 
 use heather::Hrc;
+use http::Response;
+use routing::{AsSegments, Segments};
 
 use crate::handler::{BoxHandler, Handler, box_handler};
-use crate::traits::*;
+use crate::{IntoResponse, traits::*};
 
 pub trait Middleware<B, C, H>: MaybeSendSync {
     type Handle: Handler<B, C>;
@@ -87,5 +89,78 @@ where
     type Handle = H;
     fn wrap(&self, handle: H) -> Self::Handle {
         handle
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PathMiddleware<M> {
+    path: Segments<'static>,
+    middleware: M,
+}
+
+impl<M> PathMiddleware<M> {
+    pub fn new<'a, S: AsSegments<'a>>(
+        path: S,
+        middleware: M,
+    ) -> Result<PathMiddleware<M>, S::Error> {
+        let segments = path.as_segments()?;
+        Ok(PathMiddleware {
+            path: segments.map(|m| m.to_owned()).collect::<Vec<_>>().into(),
+            middleware,
+        })
+    }
+}
+
+impl<B, C, M, H> Middleware<B, C, H> for PathMiddleware<M>
+where
+    H: Handler<B, C> + Clone,
+    M: Middleware<B, C, H>,
+    B: 'static,
+{
+    type Handle = PathMiddlewareService<H, M::Handle>;
+
+    fn wrap(&self, handler: H) -> Self::Handle {
+        PathMiddlewareService {
+            wrapped_handler: self.middleware.wrap(handler.clone()),
+            handler,
+            segments: self.path.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PathMiddlewareService<T, M> {
+    handler: T,
+    wrapped_handler: M,
+    segments: Segments<'static>,
+}
+
+impl<B: 'static, C, T, M> Handler<B, C> for PathMiddlewareService<T, M>
+where
+    T: Handler<B, C>,
+    T::Response: IntoResponse<B>,
+    M: Handler<B, C>,
+    M::Response: IntoResponse<B>,
+{
+    type Response = Response<B>;
+
+    type Future<'a>
+        = BoxFuture<'a, Result<Self::Response, crate::Error>>
+    where
+        Self: 'a,
+        C: 'a;
+
+    fn call<'a>(&'a self, context: &'a C, req: http::Request<B>) -> Self::Future<'a> {
+        Box::pin(async move {
+            if routing::match_path(&self.segments, req.uri().path(), &mut ()) {
+                Ok(self
+                    .wrapped_handler
+                    .call(context, req)
+                    .await?
+                    .into_response())
+            } else {
+                Ok(self.handler.call(context, req).await?.into_response())
+            }
+        })
     }
 }

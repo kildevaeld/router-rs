@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 pub use crate::error::Error;
 use crate::modifier::{BoxModifier, Modifier, ModifierList, Modify, modifier_box};
-use crate::traits::{MaybeSend, MaybeSendSync};
+use crate::traits::{MaybeSend, MaybeSendSync, Routing};
 use crate::{
     handler::{BoxHandler, Handler, box_handler},
     middleware::{BoxMiddleware, Middleware, box_middleware},
@@ -44,29 +44,21 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         self.tree.merge(router.tree);
     }
 
-    pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
-    where
-        T: Handler<B, C> + 'static,
-    {
-        self.tree.route(method, path, box_handler(handler))?;
-        Ok(())
-    }
+    // pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
+    // where
+    //     T: Handler<B, C> + 'static,
+    // {
+    //     self.tree.route(method, path, box_handler(handler))?;
+    //     Ok(())
+    // }
 
-    pub fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
-    where
-        M: Middleware<B, C, BoxHandler<B, C>> + 'static,
-    {
-        self.middlewares.push(box_middleware(middleware).into());
-        Ok(())
-    }
-
-    pub fn middleware_path<M>(&mut self, path: &str, middleware: M) -> Result<(), Error>
-    where
-        M: Middleware<B, C, BoxHandler<B, C>> + 'static,
-    {
-        self.middlewares.push(box_middleware(middleware).into());
-        Ok(())
-    }
+    // pub fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
+    // where
+    //     M: Middleware<B, C, BoxHandler<B, C>> + 'static,
+    // {
+    //     self.middlewares.push(box_middleware(middleware).into());
+    //     Ok(())
+    // }
 
     pub fn match_route<P: Params>(
         &self,
@@ -83,6 +75,30 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
             router: Hrc::new(self.into()),
             context,
         }
+    }
+}
+
+impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Routing<C, B> for Builder<C, B> {
+    type Handler = BoxHandler<B, C>;
+
+    fn modifier<M: Modifier<B, C> + 'static>(&mut self, modifier: M) {
+        self.modifiers.push(modifier_box(modifier));
+    }
+
+    fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
+    where
+        T: Handler<B, C> + 'static,
+    {
+        self.tree.route(method, path, box_handler(handler))?;
+        Ok(())
+    }
+
+    fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
+    where
+        M: Middleware<B, C, Self::Handler> + 'static,
+    {
+        self.middlewares.push(box_middleware(middleware));
+        Ok(())
     }
 }
 
