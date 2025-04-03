@@ -8,9 +8,9 @@ use crate::{
     handler::{BoxHandler, Handler, box_handler},
     middleware::{BoxMiddleware, Middleware, box_middleware},
 };
-#[cfg(feature = "tower")]
-use heather::{BoxFuture, Hrc};
-#[cfg(feature = "tower")]
+#[cfg(any(feature = "tower", feature = "hyper"))]
+use heather::BoxFuture;
+use heather::Hrc;
 use http::{Request, Response};
 use routing::Params;
 use routing::router::MethodFilter;
@@ -159,7 +159,7 @@ pub fn compile<B, C>(
     handler
 }
 
-#[cfg(feature = "tower")]
+#[cfg(any(feature = "tower", feature = "hyper"))]
 pub struct RouterService<C, B> {
     router: Hrc<Router<C, B>>,
     context: C,
@@ -208,7 +208,7 @@ where
     }
 }
 
-#[cfg(feature = "tower")]
+#[cfg(any(feature = "tower", feature = "hyper"))]
 impl<C, B> Clone for RouterService<C, B>
 where
     C: Clone,
@@ -220,21 +220,6 @@ where
         }
     }
 }
-
-// pin_project! {
-//     pub struct RouterServiceFuture<C, B> {
-//         router: Router<C, B>,
-//         content: C,
-//     }
-// }
-
-// impl<C, B> Future for RouterServiceFuture<C, B> {
-//     type Output = Result<Response<B>, Error>;
-
-//     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
-//         todo!()
-//     }
-// }
 
 #[derive(Debug, Clone)]
 pub struct UrlParams {

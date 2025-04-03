@@ -77,7 +77,7 @@ where
 pub fn modifier_box<T, B, C>(modifier: T) -> BoxModifier<B, C>
 where
     T: Modifier<B, C> + MaybeSendSync + 'static,
-    T::Modify: Send + 'static,
+    T::Modify: MaybeSend + 'static,
     C: MaybeSendSync,
     B: MaybeSend + 'static,
 {
@@ -154,85 +154,85 @@ where
     }
 }
 
-#[cfg(feature = "tower")]
-#[derive(Clone)]
-pub struct ModifierLayer<B, C> {
-    modifiers: Arc<[BoxModifier<B, C>]>,
-    state: C,
-}
+// #[cfg(feature = "tower")]
+// #[derive(Clone)]
+// pub struct ModifierLayer<B, C> {
+//     modifiers: Arc<[BoxModifier<B, C>]>,
+//     state: C,
+// }
 
-#[cfg(feature = "tower")]
-impl<B, C> ModifierLayer<B, C> {
-    pub fn new(modifiers: Vec<BoxModifier<B, C>>, state: C) -> ModifierLayer<B, C> {
-        ModifierLayer {
-            modifiers: modifiers.into(),
-            state,
-        }
-    }
-}
+// #[cfg(feature = "tower")]
+// impl<B, C> ModifierLayer<B, C> {
+//     pub fn new(modifiers: Vec<BoxModifier<B, C>>, state: C) -> ModifierLayer<B, C> {
+//         ModifierLayer {
+//             modifiers: modifiers.into(),
+//             state,
+//         }
+//     }
+// }
 
-#[cfg(feature = "tower")]
-impl<T, B: MaybeSend, C: 'static + MaybeSendSync + Clone> Layer<T> for ModifierLayer<B, C> {
-    type Service = ModifierLayerService<T, B, C>;
-    fn layer(&self, inner: T) -> Self::Service {
-        ModifierLayerService {
-            service: inner,
-            state: self.state.clone(),
-            modifiers: self.modifiers.clone(),
-        }
-    }
-}
+// #[cfg(feature = "tower")]
+// impl<T, B: MaybeSend, C: 'static + MaybeSendSync + Clone> Layer<T> for ModifierLayer<B, C> {
+//     type Service = ModifierLayerService<T, B, C>;
+//     fn layer(&self, inner: T) -> Self::Service {
+//         ModifierLayerService {
+//             service: inner,
+//             state: self.state.clone(),
+//             modifiers: self.modifiers.clone(),
+//         }
+//     }
+// }
 
-#[cfg(feature = "tower")]
-#[derive(Clone)]
-pub struct ModifierLayerService<T, B, C> {
-    service: T,
-    state: C,
-    modifiers: Arc<[BoxModifier<B, C>]>,
-}
+// #[cfg(feature = "tower")]
+// #[derive(Clone)]
+// pub struct ModifierLayerService<T, B, C> {
+//     service: T,
+//     state: C,
+//     modifiers: Arc<[BoxModifier<B, C>]>,
+// }
 
-#[cfg(feature = "tower")]
-impl<T, B, C: 'static + Clone + MaybeSendSync> Service<Request<B>> for ModifierLayerService<T, B, C>
-where
-    T: Service<Request<B>, Error = Infallible> + Clone + Send + 'static,
-    T::Response: IntoResponse<B>,
-    T::Future: MaybeSend,
-    B: MaybeSend + 'static,
-{
-    type Error = Infallible;
-    type Response = Response<B>;
-    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
-    fn poll_ready(
-        &mut self,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
+// #[cfg(feature = "tower")]
+// impl<T, B, C: 'static + Clone + MaybeSendSync> Service<Request<B>> for ModifierLayerService<T, B, C>
+// where
+//     T: Service<Request<B>, Error = Infallible> + Clone + Send + 'static,
+//     T::Response: IntoResponse<B>,
+//     T::Future: MaybeSend,
+//     B: MaybeSend + 'static,
+// {
+//     type Error = Infallible;
+//     type Response = Response<B>;
+//     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+//     fn poll_ready(
+//         &mut self,
+//         cx: &mut std::task::Context<'_>,
+//     ) -> std::task::Poll<Result<(), Self::Error>> {
+//         self.service.poll_ready(cx)
+//     }
 
-    fn call(&mut self, mut req: Request<B>) -> Self::Future {
-        let mut service = self.service.clone();
-        let modifiers = self.modifiers.clone();
-        let state = self.state.clone();
+//     fn call(&mut self, mut req: Request<B>) -> Self::Future {
+//         let mut service = self.service.clone();
+//         let modifiers = self.modifiers.clone();
+//         let state = self.state.clone();
 
-        Box::pin(async move {
-            let mut mods = Vec::with_capacity(modifiers.len());
+//         Box::pin(async move {
+//             let mut mods = Vec::with_capacity(modifiers.len());
 
-            req.extensions_mut().insert(state.clone());
+//             req.extensions_mut().insert(state.clone());
 
-            for modifier in modifiers.iter() {
-                mods.push(modifier.before(&mut req, &state).await);
-            }
+//             for modifier in modifiers.iter() {
+//                 mods.push(modifier.before(&mut req, &state).await);
+//             }
 
-            let mut res = service.call(req).await?.into_response();
+//             let mut res = service.call(req).await?.into_response();
 
-            for modifier in mods {
-                modifier.modify(&mut res, &state).await;
-            }
+//             for modifier in mods {
+//                 modifier.modify(&mut res, &state).await;
+//             }
 
-            Ok(res)
-        })
-    }
-}
+//             Ok(res)
+//         })
+//     }
+// }
 
 impl<B: MaybeSend, C: MaybeSendSync> Modifier<B, C> for Hrc<[BoxModifier<B, C>]> {
     type Modify = Vec<BoxModify<B, C>>;
