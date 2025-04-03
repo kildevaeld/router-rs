@@ -20,5 +20,6 @@ pub use self::{
     into_response::IntoResponse,
     middleware::{BoxMiddleware, Middleware},
     middleware_fn::{MiddlewareFn, middleware_fn},
+    modifier::{BoxModifier, BoxModify, Modifier, ModifierList, Modify},
     router::{Builder, Router, UrlParams, compile},
 };
