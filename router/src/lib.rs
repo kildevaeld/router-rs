@@ -5,6 +5,7 @@ mod handler_fn;
 mod into_response;
 mod middleware;
 mod middleware_fn;
+mod modifier;
 mod router;
 #[cfg(feature = "tower")]
 mod service_ext;

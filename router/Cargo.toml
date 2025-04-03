@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = []
+default = ["tower"]
 send = ["heather/send"]
-hyper = ["dep:hyper"]
-tower = ["dep:tower", "dep:tower-util"]
+hyper = ["dep:hyper", "send"]
+tower = ["dep:tower", "dep:tower-util", "send"]
 
 [dependencies]
 routing = { path = "../routing", features = ["std", "router"] }
