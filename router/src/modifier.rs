@@ -279,6 +279,12 @@ impl<B, C> From<Hrc<[BoxModifier<B, C>]>> for ModifierList<B, C> {
     }
 }
 
+impl<B, C> From<Vec<BoxModifier<B, C>>> for ModifierList<B, C> {
+    fn from(value: Vec<BoxModifier<B, C>>) -> Self {
+        ModifierList(value.into())
+    }
+}
+
 impl<B: MaybeSend, C: MaybeSendSync> Modifier<B, C> for ModifierList<B, C> {
     type Modify = Vec<BoxModify<B, C>>;
 
