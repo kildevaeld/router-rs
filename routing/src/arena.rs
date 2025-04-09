@@ -1,4 +1,4 @@
-use std::vec::Vec;
+use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Id(usize);
@@ -32,10 +32,6 @@ impl<T> Arena<T> {
         let index = self.inner.len();
         self.inner.push(item);
         Id(index)
-    }
-
-    pub fn get(&self, id: Id) -> Option<&T> {
-        self.inner.get(id.0)
     }
 
     pub fn map<F, V>(self, mapper: F) -> Arena<V>

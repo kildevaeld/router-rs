@@ -6,11 +6,10 @@ version = "0.3.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 default = []
-std = ["id-arena/std", "udled/std"]
+std = ["udled/std"]
 router = ["bitflags", "http"]
 
 [dependencies]
-id-arena = { version = "2", default-features = false }
 udled = { version = "0.3" }
 udled-tokenizers = { version = "0.2" }
 

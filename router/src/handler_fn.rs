@@ -1,8 +1,7 @@
-use std::marker::PhantomData;
-use std::task::Poll;
+use core::marker::PhantomData;
+use core::task::Poll;
 
 use futures::{TryFuture, TryFutureExt, ready};
-use heather::HBoxError;
 use http::Request;
 use pin_project_lite::pin_project;
 

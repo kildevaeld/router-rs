@@ -19,6 +19,12 @@ futures-core = { version = "0.3", default-features = false }
 bytes = { version = "1", default-features = false }
 
 
-tokio = { version = "1", features = ["net", "macros", "rt"] }
+tokio = { version = "1", features = ["net", "rt"] }
 hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["full"] }
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["net", "rt", "macros"] }
+router-cookies = { path = "../router-cookies" }
+router-session = { path = "../router-session" }

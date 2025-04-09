@@ -6,7 +6,7 @@ use uhuh_container::prelude::*;
 use crate::bindings;
 use crate::{modifier::SessionModifier, session_store::SessionStore};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct SessionModule {
     #[serde(default)]
     pub anonymous: bool,

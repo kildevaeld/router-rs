@@ -1,5 +1,5 @@
 use heather::{HSend, Hrc};
-use router::{Builder, MethodFilter, Router, Routing};
+use router::{Builder, MethodFilter, Router, RouterBuildContext, Routing};
 use uhuh_container::{Extensible, ExtensibleMut, Extensions, modules::BuildContext};
 
 use crate::body::Body;
@@ -83,4 +83,8 @@ impl BuildContext for RouterContext {
             ))
         }
     }
+}
+
+impl RouterBuildContext for RouterContext {
+    type Body = Body;
 }

@@ -30,14 +30,16 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         }
     }
 
-    pub fn mount(&mut self, path: &str, router: impl Into<Router<C, B>>) {
+    pub fn mount(&mut self, path: &str, router: impl Into<Router<C, B>>) -> Result<(), Error> {
         let router = router.into();
-        self.tree.mount(path, router.tree);
+        self.tree.mount(path, router.tree)?;
+        Ok(())
     }
 
-    pub fn merge(&mut self, router: impl Into<Router<C, B>>) {
+    pub fn merge(&mut self, router: impl Into<Router<C, B>>) -> Result<(), Error> {
         let router = router.into();
-        self.tree.merge(router.tree);
+        self.tree.merge(router.tree)?;
+        Ok(())
     }
 
     pub fn match_route<P: Params>(

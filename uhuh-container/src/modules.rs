@@ -1,6 +1,6 @@
 use crate::{Extensible, ExtensibleMut};
 use alloc::{boxed::Box, vec::Vec};
-use heather::{HBoxError, HBoxFuture, HSend, HSendSync};
+use heather::{HBoxFuture, HSend, HSendSync};
 
 pub trait BuildContext: ExtensibleMut {
     type Context: Extensible;

@@ -2,6 +2,9 @@ use std::sync::Arc;
 
 use arc_swap::{ArcSwap, ArcSwapAny};
 
+use heather::HBoxFuture;
+use router::{FromRequest, FromRequestParts};
+use uhuh_container::{Extensible, ReadableContainer};
 use uuid::Uuid;
 use vaerdi::{Map, Value, hashbrown::hash_map::Iter};
 
@@ -112,29 +115,49 @@ impl Session {
     }
 }
 
-// #[async_trait]
-// impl<C: RunContext + Send + Sync + Clone + 'static> FromRequestParts<C> for Session {
-//     type Rejection = String;
+impl<C: Extensible> FromRequestParts<C> for Session {
+    type Future<'a>
+        = HBoxFuture<'a, Result<Session, router::Error>>
+    where
+        C: 'a;
+    fn from_request_parts<'a>(
+        parts: &'a mut http::request::Parts,
+        state: &'a C,
+    ) -> Self::Future<'a> {
+        Box::pin(async move {
+            let Some(store) = state.get::<SessionStore>() else {
+                return Err(router::Error::new("session store not found"));
+            };
 
-//     async fn from_request_parts(parts: &mut Parts, state: &C) -> Result<Self, Self::Rejection> {
-//         let Some(store) = state.get::<SessionStore>() else {
-//             return Err(format!("session store not found"));
-//         };
+            let Some(id) = parts.extensions.get::<SessionId>() else {
+                return Err(router::Error::new("session not found"));
+            };
 
-//         let Some(id) = parts.extensions.get::<SessionId>() else {
-//             return Err(format!("session not found"));
-//         };
+            let map = if let Some(id) = id.state().id() {
+                store.load(&id).await.unwrap_or_default()
+            } else {
+                Map::default()
+            };
 
-//         let map = if let Some(id) = id.state().id() {
-//             store.load(&id).await.unwrap_or_default()
-//         } else {
-//             Map::default()
-//         };
+            Ok(Self {
+                id: id.clone(),
+                store: store.clone(),
+                value: map,
+            })
+        })
+    }
+}
 
-//         Ok(Self {
-//             id: id.clone(),
-//             store: store.clone(),
-//             value: map,
-//         })
-//     }
-// }
+impl<B: 'static, C: Extensible> FromRequest<B, C> for Session {
+    type Future<'a>
+        = HBoxFuture<'a, Result<Session, router::Error>>
+    where
+        C: 'a;
+
+    fn from_request<'a>(parts: http::Request<B>, state: &'a C) -> Self::Future<'a> {
+        Box::pin(async move {
+            let (mut parts, _) = parts.into_parts();
+            Self::from_request_parts(&mut parts, state).await
+        })
+    }
+}

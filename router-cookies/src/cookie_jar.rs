@@ -1,12 +1,15 @@
-use std::sync::Arc;
+use std::{
+    future::{Ready, ready},
+    sync::Arc,
+};
 
-use heather::{Hrc, Lock};
 use http::{
     HeaderMap,
     header::{COOKIE, SET_COOKIE},
-    request::Parts,
 };
 use parking_lot::RwLock;
+use router::{FromRequest, FromRequestParts};
+use uhuh_container::Extensible;
 
 #[derive(Debug, Clone)]
 pub struct CookieJar {
@@ -81,3 +84,34 @@ impl CookieJar {
 //             .ok_or_else(|| "cookie jar not found")
 //     }
 // }
+
+impl<C: Extensible> FromRequestParts<C> for CookieJar {
+    type Future<'a>
+        = Ready<Result<CookieJar, router::Error>>
+    where
+        C: 'a;
+    fn from_request_parts<'a>(
+        parts: &'a mut http::request::Parts,
+        _state: &'a C,
+    ) -> Self::Future<'a> {
+        ready(
+            parts
+                .extensions
+                .get::<CookieJar>()
+                .cloned()
+                .ok_or_else(|| router::Error::new("CookieJar modifier not registered")),
+        )
+    }
+}
+
+impl<B: 'static, C: Extensible> FromRequest<B, C> for CookieJar {
+    type Future<'a>
+        = Ready<Result<CookieJar, router::Error>>
+    where
+        C: 'a;
+
+    fn from_request<'a>(parts: http::Request<B>, state: &'a C) -> Self::Future<'a> {
+        let (mut parts, _) = parts.into_parts();
+        Self::from_request_parts(&mut parts, state)
+    }
+}

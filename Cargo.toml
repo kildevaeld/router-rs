@@ -3,7 +3,8 @@
 resolver = "2"
 
 members = [
-    "router", "router-app",
+    "router",
+    "router-app",
     "router-cookies",
     "router-session",
     "routing",
@@ -13,7 +14,7 @@ members = [
 
 [workspace.dependencies]
 http = { version = "1" }
-serde = { version = "1" }
+serde = { version = "1", features = ["derive"] }
 heather = { git = "https://github.com/kildevaeld/heather", features = [
     "std",
     "alloc",

@@ -1,4 +1,4 @@
-use body::Body;
+pub use body::Body;
 use context::{Context, RouterContext};
 use router::{MethodFilter, Middleware, Modifier, Routing};
 use uhuh_container::modules::{Builder, Module};
@@ -6,6 +6,8 @@ use uhuh_container::modules::{Builder, Module};
 mod body;
 mod context;
 mod error;
+
+pub use error::Error;
 
 use http_body_util::BodyExt;
 use hyper::server::conn::http1;
@@ -20,12 +22,27 @@ pub struct App {
 }
 
 impl App {
+    pub fn new() -> App {
+        App {
+            builder: Builder::new(),
+        }
+    }
+
     pub fn add_module<M>(&mut self, module: M)
     where
         M: uhuh_container::modules::Module<RouterContext> + 'static,
         M::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
     {
         self.builder.add_module(module);
+    }
+
+    pub fn module<M>(mut self, module: M) -> Self
+    where
+        M: uhuh_container::modules::Module<RouterContext> + 'static,
+        M::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
+    {
+        self.builder.add_module(module);
+        self
     }
 
     #[cfg(feature = "send")]
@@ -186,4 +203,8 @@ where
             Ok(())
         }
     }
+}
+
+pub fn app() -> App {
+    App::new()
 }

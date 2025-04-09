@@ -1,5 +1,5 @@
 mod error;
-// mod func;
+mod func;
 mod handler;
 mod handler_fn;
 mod into_response;
@@ -15,12 +15,16 @@ mod traits;
 pub use self::service_ext::ServiceExt;
 pub use self::{
     error::Error,
+    func::{FromRequest, FromRequestParts, handler},
     handler::{BoxHandler, Handler},
     handler_fn::{HandleFn, handle_fn},
     into_response::IntoResponse,
     middleware::{BoxMiddleware, Middleware, PathMiddleware},
     middleware_fn::{MiddlewareFn, middleware_fn},
-    modifier::{BoxModifier, BoxModify, Modifier, ModifierList, Modify},
+    modifier::{
+        BoxModifier, BoxModify, Modifier, ModifierList, ModifierMiddleware,
+        ModifierMiddlewareHandler, Modify,
+    },
     router::{Builder, Router, UrlParams, compose},
     traits::Routing,
 };

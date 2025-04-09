@@ -17,3 +17,5 @@ pub use private::PrivateJar;
 pub use signed::SignedJar;
 
 pub use cookie::{Cookie, Key, KeyError};
+
+pub use module::{CookiesConfig, CookiesModule};

@@ -131,8 +131,8 @@ impl<H> Router<H> {
         &mut self,
         path: S,
         router: Router<H>,
-    ) -> Result<(), RouteError> {
-        self.inner.mount(path, router.inner);
+    ) -> Result<(), S::Error> {
+        self.inner.mount(path, router.inner)?;
         Ok(())
     }
 
