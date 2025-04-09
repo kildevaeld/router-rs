@@ -145,7 +145,7 @@ where
     type Response = Response<B>;
 
     type Future<'a>
-        = BoxFuture<'a, Result<Self::Response, crate::Error>>
+        = heather::HBoxFuture<'a, Result<Self::Response, crate::Error>>
     where
         Self: 'a,
         C: 'a;

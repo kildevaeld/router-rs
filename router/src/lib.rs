@@ -21,7 +21,7 @@ pub use self::{
     middleware::{BoxMiddleware, Middleware, PathMiddleware},
     middleware_fn::{MiddlewareFn, middleware_fn},
     modifier::{BoxModifier, BoxModify, Modifier, ModifierList, Modify},
-    router::{Builder, Router, UrlParams, compile},
+    router::{Builder, Router, UrlParams, compose},
     traits::Routing,
 };
 

@@ -9,7 +9,7 @@ use crate::{
     middleware::{BoxMiddleware, Middleware, box_middleware},
 };
 #[cfg(any(feature = "tower", feature = "hyper"))]
-use heather::BoxFuture;
+use heather::HBoxFuture;
 use heather::Hrc;
 use http::{Request, Response};
 use routing::Params;
@@ -30,10 +30,6 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         }
     }
 
-    pub fn modifier<M: Modifier<B, C> + 'static>(&mut self, modifier: M) {
-        self.modifiers.push(modifier_box(modifier));
-    }
-
     pub fn mount(&mut self, path: &str, router: impl Into<Router<C, B>>) {
         let router = router.into();
         self.tree.mount(path, router.tree);
@@ -44,22 +40,6 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         self.tree.merge(router.tree);
     }
 
-    // pub fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
-    // where
-    //     T: Handler<B, C> + 'static,
-    // {
-    //     self.tree.route(method, path, box_handler(handler))?;
-    //     Ok(())
-    // }
-
-    // pub fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
-    // where
-    //     M: Middleware<B, C, BoxHandler<B, C>> + 'static,
-    // {
-    //     self.middlewares.push(box_middleware(middleware).into());
-    //     Ok(())
-    // }
-
     pub fn match_route<P: Params>(
         &self,
         path: &str,
@@ -69,7 +49,7 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Builder<C, B> {
         self.tree.match_route(path, method, params)
     }
 
-    #[cfg(feature = "tower")]
+    #[cfg(any(feature = "tower", feature = "hyper"))]
     pub fn into_service(self, context: C) -> RouterService<C, B> {
         RouterService {
             router: Hrc::new(self.into()),
@@ -104,7 +84,7 @@ impl<C: MaybeSendSync + 'static, B: MaybeSend + 'static> Routing<C, B> for Build
 
 impl<C, B> From<Builder<C, B>> for Router<C, B> {
     fn from(value: Builder<C, B>) -> Self {
-        let tree = value.tree.map(|m| compile(&value.middlewares, m));
+        let tree = value.tree.map(|m| compose(&value.middlewares, m));
         let modifiers: Hrc<[BoxModifier<B, C>]> = value.modifiers.into();
         Router {
             tree,
@@ -156,9 +136,17 @@ impl<C: MaybeSendSync, B: MaybeSend> Router<C, B> {
     ) {
         (self.tree, self.modifiers)
     }
+
+    #[cfg(any(feature = "tower", feature = "hyper"))]
+    pub fn into_service(self, context: C) -> RouterService<C, B> {
+        RouterService {
+            router: Hrc::new(self),
+            context,
+        }
+    }
 }
 
-pub fn compile<B, C>(
+pub fn compose<B, C>(
     middlewares: &[BoxMiddleware<B, C, BoxHandler<B, C>>],
     task: BoxHandler<B, C>,
 ) -> BoxHandler<B, C> {
@@ -191,7 +179,7 @@ where
 
     type Error = Error;
 
-    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future = HBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn poll_ready(
         &mut self,
@@ -216,7 +204,7 @@ where
 
     type Error = Error;
 
-    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future = HBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn call(&self, req: Request<B>) -> Self::Future {
         let this = self.clone();

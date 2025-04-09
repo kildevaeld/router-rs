@@ -6,7 +6,7 @@ edition = "2024"
 [features]
 default = []
 send = ["heather/send"]
-hyper = ["dep:hyper", "send"]
+hyper = ["dep:hyper"]
 tower = ["dep:tower", "dep:tower-util"]
 
 [dependencies]

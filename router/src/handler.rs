@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use crate::{
     IntoResponse,
     error::Error,
-    traits::{BoxFuture, MaybeSend, MaybeSendSync},
+    traits::{HBoxFuture, MaybeSend, MaybeSendSync},
 };
 
 pub trait Handler<B, C>: MaybeSendSync {
@@ -23,7 +23,7 @@ pub trait DynHandler<B, C>: MaybeSendSync {
         &'a self,
         context: &'a C,
         req: Request<B>,
-    ) -> BoxFuture<'a, Result<Response<B>, Error>>;
+    ) -> HBoxFuture<'a, Result<Response<B>, Error>>;
 }
 
 pub fn box_handler<C, B, T>(handler: T) -> BoxHandler<B, C>
@@ -55,7 +55,7 @@ where
         &'a self,
         context: &'a C,
         req: Request<B>,
-    ) -> BoxFuture<'a, Result<Response<B>, Error>> {
+    ) -> HBoxFuture<'a, Result<Response<B>, Error>> {
         Box::pin(async move { self.0.call(context, req).await.map(|m| m.into_response()) })
     }
 }
@@ -74,7 +74,7 @@ impl<B, C> Handler<B, C> for BoxHandler<B, C> {
     type Response = Response<B>;
 
     type Future<'a>
-        = BoxFuture<'a, Result<Self::Response, Error>>
+        = HBoxFuture<'a, Result<Self::Response, Error>>
     where
         Self: 'a,
         C: 'a;

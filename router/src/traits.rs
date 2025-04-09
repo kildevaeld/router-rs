@@ -1,7 +1,7 @@
-pub use heather::{BoxFuture, HSend as MaybeSend, HSendSync as MaybeSendSync};
+pub use heather::{HBoxFuture, HSend as MaybeSend, HSendSync as MaybeSendSync};
 use routing::router::MethodFilter;
 
-use crate::{Error, Handler, Middleware, Modifier, middleware::PathMiddleware};
+use crate::{Error, Handler, Middleware, Modifier};
 
 pub trait Routing<C, B> {
     type Handler: Handler<B, C>;
@@ -15,12 +15,4 @@ pub trait Routing<C, B> {
     fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
     where
         M: Middleware<B, C, Self::Handler> + 'static;
-
-    // fn middleware_path<M>(&mut self, path: &str, middleware: M) -> Result<(), Error>
-    // where
-    //     M: Middleware<B, C, Self::Handler>,
-    //     M::Handle: Clone,
-    // {
-    //     self.middleware(PathMiddleware::new(path, middleware)?)
-    // }
 }

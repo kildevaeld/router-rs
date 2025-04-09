@@ -1,4 +1,5 @@
 use crate::{Error, Handler, IntoResponse, Middleware, traits::*};
+use heather::HBoxFuture;
 use heather::Hrc;
 use http::{Request, Response};
 use std::future::Future;
@@ -27,7 +28,7 @@ pub trait DynModifier<B, C>: MaybeSendSync {
         &'a self,
         request: &'a mut Request<B>,
         state: &'a C,
-    ) -> BoxFuture<'a, BoxModify<B, C>>;
+    ) -> HBoxFuture<'a, BoxModify<B, C>>;
 }
 
 pub trait DynModify<B, C>: MaybeSend {
@@ -35,7 +36,7 @@ pub trait DynModify<B, C>: MaybeSend {
         self: Box<Self>,
         response: &'a mut Response<B>,
         state: &'a C,
-    ) -> BoxFuture<'a, ()>;
+    ) -> HBoxFuture<'a, ()>;
 }
 
 struct ModifyBox<T>(T);
@@ -48,7 +49,7 @@ where
         self: Box<Self>,
         response: &'a mut Response<B>,
         state: &'a C,
-    ) -> BoxFuture<'a, ()> {
+    ) -> HBoxFuture<'a, ()> {
         Box::pin(async move { self.0.modify(response, state).await })
     }
 }
@@ -67,7 +68,7 @@ where
         &'a self,
         request: &'a mut Request<B>,
         state: &'a C,
-    ) -> BoxFuture<'a, BoxModify<B, C>> {
+    ) -> HBoxFuture<'a, BoxModify<B, C>> {
         Box::pin(async move {
             Box::new(ModifyBox(self.0.before(request, state).await)) as BoxModify<B, C>
         })
@@ -130,7 +131,7 @@ where
 {
     type Response = Response<B>;
 
-    type Future<'a> = BoxFuture<'a, Result<Self::Response, Error>>;
+    type Future<'a> = HBoxFuture<'a, Result<Self::Response, Error>>;
 
     fn call<'a>(&'a self, context: &'a C, mut req: Request<B>) -> Self::Future<'a> {
         let service = self.handler.clone();
@@ -201,7 +202,7 @@ where
 // {
 //     type Error = Infallible;
 //     type Response = Response<B>;
-//     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+//     type Future = HBoxFuture<'static, Result<Self::Response, Self::Error>>;
 //     fn poll_ready(
 //         &mut self,
 //         cx: &mut std::task::Context<'_>,

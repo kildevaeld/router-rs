@@ -30,7 +30,7 @@ where
     T: Fn(C, Request<B>) -> U + MaybeSendSync,
     U: TryFuture + MaybeSend,
     U::Ok: IntoResponse<B>,
-    U::Error: Into<HBoxError<'static>>,
+    U::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
     B: MaybeSend,
     C: Clone,
 {
@@ -64,7 +64,7 @@ unsafe impl<B, C, U: Send> Send for HandlerFnFuture<B, C, U> {}
 impl<B, C, U> Future for HandlerFnFuture<B, C, U>
 where
     U: TryFuture,
-    U::Error: Into<HBoxError<'static>>,
+    U::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
 {
     type Output = Result<U::Ok, Error>;
 

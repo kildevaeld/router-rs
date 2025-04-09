@@ -2,7 +2,7 @@ use std::convert::Infallible;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
 
-use heather::{BoxFuture, HSend, HSendSync};
+use heather::{HBoxFuture, HSend, HSendSync};
 use http_body_util::{BodyExt, Full};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;

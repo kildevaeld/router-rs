@@ -3,8 +3,11 @@ name = "router-app"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+send = ["router/send", "heather/send"]
+
 [dependencies]
-router = { path = "../router" }
+router = { path = "../router", features = ["hyper"] }
 uhuh-container = { path = "../uhuh-container" }
 heather.workspace = true
 
@@ -14,3 +17,8 @@ http-body-util = { version = "0.1", default-features = false }
 
 futures-core = { version = "0.3", default-features = false }
 bytes = { version = "1", default-features = false }
+
+
+tokio = { version = "1", features = ["net", "macros", "rt"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["full"] }

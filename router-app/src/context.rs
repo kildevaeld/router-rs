@@ -1,17 +1,12 @@
-use heather::{HSend, HSendSync, Hrc};
+use heather::{HSend, Hrc};
 use router::{Builder, MethodFilter, Router, Routing};
 use uhuh_container::{Extensible, ExtensibleMut, Extensions, modules::BuildContext};
 
 use crate::body::Body;
 
+#[derive(Clone)]
 pub struct Context {
     extensions: Hrc<Extensions>,
-}
-
-fn test<T: HSendSync>() {}
-
-fn rap() {
-    test::<Context>()
 }
 
 impl Extensible for Context {

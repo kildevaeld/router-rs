@@ -1,6 +1,6 @@
 use crate::{Extensible, ExtensibleMut};
 use alloc::{boxed::Box, vec::Vec};
-use heather::{BoxFuture, HBoxError, HSend, HSendSync};
+use heather::{HBoxError, HBoxFuture, HSend, HSendSync};
 
 pub trait BuildContext: ExtensibleMut {
     type Context: Extensible;
@@ -19,7 +19,10 @@ pub trait Module<C: BuildContext>: HSendSync {
 }
 
 pub trait DynModule<C: BuildContext>: HSendSync {
-    fn build<'a>(self: Box<Self>, ctx: &'a mut C) -> BoxFuture<'a, Result<(), HBoxError<'static>>>;
+    fn build<'a>(
+        self: Box<Self>,
+        ctx: &'a mut C,
+    ) -> HBoxFuture<'a, Result<(), Box<dyn core::error::Error + Send + Sync>>>;
 }
 
 pub type BoxModule<C> = Box<dyn DynModule<C>>;
@@ -28,7 +31,7 @@ impl<C> Module<C> for BoxModule<C>
 where
     C: BuildContext,
 {
-    type Error = HBoxError<'static>;
+    type Error = Box<dyn core::error::Error + Send + Sync>;
 
     fn build<'a>(
         self,
@@ -45,7 +48,7 @@ impl<T> ModuleBox<T> {
     where
         C: BuildContext,
         T: Module<C> + 'static,
-        T::Error: Into<HBoxError<'static>> + 'static,
+        T::Error: Into<Box<dyn core::error::Error + Send + Sync>> + 'static,
     {
         Box::new(ModuleBox(module))
     }
@@ -55,9 +58,12 @@ impl<C, T> DynModule<C> for ModuleBox<T>
 where
     C: BuildContext,
     T: Module<C> + 'static,
-    T::Error: Into<HBoxError<'static>> + 'static,
+    T::Error: Into<Box<dyn core::error::Error + Send + Sync>> + 'static,
 {
-    fn build<'a>(self: Box<Self>, ctx: &'a mut C) -> BoxFuture<'a, Result<(), HBoxError<'static>>> {
+    fn build<'a>(
+        self: Box<Self>,
+        ctx: &'a mut C,
+    ) -> HBoxFuture<'a, Result<(), Box<dyn core::error::Error + Send + Sync>>> {
         Box::pin(async move { self.0.build(ctx).await.map_err(Into::into) })
     }
 }
@@ -68,7 +74,7 @@ pub struct Builder<C: BuildContext> {
 
 impl<C: BuildContext> Builder<C>
 where
-    C::Error: From<HBoxError<'static>>,
+    C::Error: From<Box<dyn core::error::Error + Send + Sync>>,
 {
     pub fn new() -> Self {
         Self {
@@ -79,7 +85,7 @@ where
     pub fn add_module<M>(&mut self, module: M)
     where
         M: Module<C> + 'static,
-        M::Error: Into<HBoxError<'static>> + 'static,
+        M::Error: Into<Box<dyn core::error::Error + Send + Sync>> + 'static,
     {
         self.modules.push(ModuleBox::new(module));
     }
@@ -87,7 +93,7 @@ where
     pub fn with_module<M>(mut self, module: M) -> Self
     where
         M: Module<C> + 'static,
-        M::Error: Into<HBoxError<'static>> + 'static,
+        M::Error: Into<Box<dyn core::error::Error + Send + Sync>> + 'static,
     {
         self.modules.push(ModuleBox::new(module));
         self
