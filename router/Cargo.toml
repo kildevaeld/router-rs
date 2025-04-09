@@ -24,6 +24,7 @@ heather = { git = "https://github.com/kildevaeld/heather", features = [
 pin-project-lite = { version = "0.2" }
 
 reggie = { git = "https://github.com/fairy-render/reggie" }
+uhuh-container = { path = "../uhuh-container" }
 
 hyper = { version = "1", optional = true }
 

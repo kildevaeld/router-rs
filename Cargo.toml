@@ -2,4 +2,20 @@
 
 resolver = "2"
 
-members = [ "router","routing", "uhuh-container"]
+members = [
+    "router", "router-app",
+    "router-cookies",
+    "router-session",
+    "routing",
+    "uhuh-container",
+]
+
+
+[workspace.dependencies]
+http = { version = "1" }
+serde = { version = "1" }
+heather = { git = "https://github.com/kildevaeld/heather", features = [
+    "std",
+    "alloc",
+] }
+tracing = { version = "0.1" }

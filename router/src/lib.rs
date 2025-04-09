@@ -24,3 +24,10 @@ pub use self::{
     router::{Builder, Router, UrlParams, compile},
     traits::Routing,
 };
+
+pub use routing::{Params, router::MethodFilter};
+use uhuh_container::modules::BuildContext;
+
+pub trait RouterBuildContext: BuildContext {
+    type Body;
+}

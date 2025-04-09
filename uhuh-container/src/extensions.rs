@@ -119,6 +119,10 @@ impl Extensions {
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
+
+    pub fn contains<T: HSendSync + 'static>(&self) -> bool {
+        self.inner.contains_key(&TypeId::of::<T>())
+    }
 }
 
 #[cfg(test)]

@@ -1,12 +1,14 @@
 use core::fmt;
 
+use heather::HBoxError;
+
 #[derive(Debug)]
 pub struct Error {
-    inner: Box<dyn std::error::Error + Send + Sync>,
+    inner: HBoxError<'static>,
 }
 
 impl Error {
-    pub fn new<T: Into<Box<dyn std::error::Error + Send + Sync>>>(error: T) -> Error {
+    pub fn new<T: Into<HBoxError<'static>>>(error: T) -> Error {
         Error {
             inner: error.into(),
         }
@@ -34,5 +36,11 @@ impl From<routing::ParseError> for Error {
 impl From<routing::router::RouteError> for Error {
     fn from(value: routing::router::RouteError) -> Self {
         Error::new(value)
+    }
+}
+
+impl From<HBoxError<'static>> for Error {
+    fn from(value: HBoxError<'static>) -> Self {
+        Error { inner: value }
     }
 }

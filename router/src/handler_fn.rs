@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use std::task::Poll;
 
 use futures::{TryFuture, TryFutureExt, ready};
+use heather::HBoxError;
 use http::Request;
 use pin_project_lite::pin_project;
 
@@ -29,7 +30,7 @@ where
     T: Fn(C, Request<B>) -> U + MaybeSendSync,
     U: TryFuture + MaybeSend,
     U::Ok: IntoResponse<B>,
-    U::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    U::Error: Into<HBoxError<'static>>,
     B: MaybeSend,
     C: Clone,
 {
@@ -63,7 +64,7 @@ unsafe impl<B, C, U: Send> Send for HandlerFnFuture<B, C, U> {}
 impl<B, C, U> Future for HandlerFnFuture<B, C, U>
 where
     U: TryFuture,
-    U::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    U::Error: Into<HBoxError<'static>>,
 {
     type Output = Result<U::Ok, Error>;
 

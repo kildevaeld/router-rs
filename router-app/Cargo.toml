@@ -1,0 +1,16 @@
+[package]
+name = "router-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+router = { path = "../router" }
+uhuh-container = { path = "../uhuh-container" }
+heather.workspace = true
+
+http.workspace = true
+http-body = { version = "1", default-features = false }
+http-body-util = { version = "0.1", default-features = false }
+
+futures-core = { version = "0.3", default-features = false }
+bytes = { version = "1", default-features = false }

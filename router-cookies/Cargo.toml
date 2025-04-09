@@ -1,0 +1,21 @@
+[package]
+name = "router-cookies"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+# quick = ["rquickjs", "rquickjs-util", "uhuh-quick"]
+secure = ["private", "signed"]
+private = ["cookie/private"]
+signed = ["cookie/signed"]
+
+
+[dependencies]
+cookie = { version = "0.18", features = ["signed", "percent-encode"] }
+serde.workspace = true
+http.workspace = true
+heather.workspace = true
+router = { path = "../router" }
+parking_lot = { version = "0.12" }
+
+uhuh-container = { path = "../uhuh-container" }
