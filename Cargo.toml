@@ -9,7 +9,7 @@ members = [
     "router-cookies",
     "router-session",
     "routing",
-    "uhuh-container",
+    "uhuh-container", "wilbur-core",
 ]
 
 
