@@ -10,7 +10,7 @@ use crate::service::RouterService;
 use heather::{HSend, HSendSync, Hrc};
 use hyper::{Request, Response};
 use routing::router::MethodFilter;
-use routing::{Params, Route};
+use routing::Params;
 use wilbur_core::handler::{BoxHandler, box_handler};
 use wilbur_core::middleware::{BoxMiddleware, box_middleware};
 use wilbur_core::modifier::{BoxModifier, ModifierList, modifier_box};
