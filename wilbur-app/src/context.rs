@@ -1,6 +1,7 @@
 use heather::{HSend, Hrc};
-use router::{Builder, MethodFilter, Router, RouterBuildContext, Routing};
-use uhuh_container::{Extensible, ExtensibleMut, Extensions, modules::BuildContext};
+use wilbur_container::{Extensible, ExtensibleMut, Extensions, modules::BuildContext};
+use wilbur_core::{Handler, Middleware, Modifier};
+use wilbur_routing::{Builder, MethodFilter, RouteError, Router, RouterBuildContext, Routing};
 
 use crate::body::Body;
 
@@ -17,7 +18,7 @@ impl Extensible for Context {
 
 pub struct RouterContext {
     extensions: Extensions,
-    router: Builder<Context, Body>,
+    router: Builder<Body, Context>,
 }
 
 impl RouterContext {
@@ -41,37 +42,42 @@ impl ExtensibleMut for RouterContext {
     }
 }
 
-impl Routing<Context, Body> for RouterContext {
-    type Handler = <Builder<Context, Body> as Routing<Context, Body>>::Handler;
+impl Routing<Body, Context> for RouterContext {
+    type Handler = <Builder<Body, Context> as Routing<Body, Context>>::Handler;
 
-    fn modifier<M: router::Modifier<Body, Context> + 'static>(&mut self, modifier: M) {
+    fn modifier<M: Modifier<Body, Context> + 'static>(&mut self, modifier: M) {
         self.router.modifier(modifier);
     }
 
-    fn route<T>(
-        &mut self,
-        method: MethodFilter,
-        path: &str,
-        handler: T,
-    ) -> Result<(), router::Error>
+    fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), RouteError>
     where
-        T: router::Handler<Body, Context> + 'static,
+        T: Handler<Body, Context> + 'static,
     {
         self.router.route(method, path, handler)
     }
 
-    fn middleware<M>(&mut self, middleware: M) -> Result<(), router::Error>
+    fn middleware<M>(&mut self, middleware: M) -> Result<(), RouteError>
     where
-        M: router::Middleware<Body, Context, Self::Handler> + 'static,
+        M: Middleware<Body, Context, Self::Handler> + 'static,
     {
         self.router.middleware(middleware)
+    }
+
+    fn merge(&mut self, router: Self) -> Result<(), RouteError> {
+        self.router.merge(router.router)?;
+        Ok(())
+    }
+
+    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
+        self.router.mount(path, router.into().router)?;
+        Ok(())
     }
 }
 
 impl BuildContext for RouterContext {
     type Context = Context;
-    type Output = (Router<Context, Body>, Context);
-    type Error = router::Error;
+    type Output = (Router<Body, Context>, Context);
+    type Error = wilbur_core::Error;
 
     fn build(self) -> impl Future<Output = Result<Self::Output, Self::Error>> + HSend {
         async move {

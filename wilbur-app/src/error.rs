@@ -31,6 +31,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "hyper")]
 impl From<hyper::Error> for Error {
     fn from(value: hyper::Error) -> Self {
         Error {

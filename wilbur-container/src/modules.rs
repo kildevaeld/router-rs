@@ -90,6 +90,10 @@ where
         self.modules.push(ModuleBox::new(module));
     }
 
+    pub fn merge(&mut self, builder: Builder<C>) {
+        self.modules.extend(builder.modules);
+    }
+
     pub fn with_module<M>(mut self, module: M) -> Self
     where
         M: Module<C> + 'static,

@@ -3,7 +3,7 @@ use wilbur_core::{Handler, Middleware, Modifier};
 
 use crate::error::RouteError;
 
-pub trait Routing<B, C> {
+pub trait Routing<B, C>: Sized {
     type Handler: Handler<B, C>;
 
     fn modifier<M: Modifier<B, C> + 'static>(&mut self, modifier: M);
@@ -16,7 +16,7 @@ pub trait Routing<B, C> {
     where
         M: Middleware<B, C, Self::Handler> + 'static;
 
-    fn mount(&mut self, path: &str, router: Self) -> Result<(), RouteError>;
+    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError>;
 
     fn merge(&mut self, router: Self) -> Result<(), RouteError>;
 }

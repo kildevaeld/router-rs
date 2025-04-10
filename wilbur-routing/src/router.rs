@@ -90,8 +90,8 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
         Ok(())
     }
 
-    fn mount(&mut self, path: &str, router: Self) -> Result<(), RouteError> {
-        let router: Router<B, C> = router.into();
+    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
+        let router: Router<B, C> = router.into().into();
         self.tree.mount(path, router.tree)?;
         Ok(())
     }

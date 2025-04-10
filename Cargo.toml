@@ -3,16 +3,14 @@
 resolver = "2"
 
 members = [
-    "router",
-    "router-app",
-    "router-cookies",
-    "router-session",
     "routing",
-    "uhuh-container",
     "wilbur-core",
     "wilbur-routing",
     "wilbur-container",
-    "wilbur-cache", "wilbur-cookies", "wilbur-session",
+    "wilbur-cache",
+    "wilbur-cookies",
+    "wilbur-session",
+    "wilbur-app",
 
 ]
 
@@ -29,7 +27,6 @@ heather = { git = "https://github.com/kildevaeld/heather", features = [
     "alloc",
 ] }
 tracing = { version = "0.1" }
-
 keyval = { git = "https://github.com/kildevaeld/keyval-rs", default-features = false, features = [
     "cbor",
     "bytes",

@@ -78,7 +78,7 @@ impl http_body::Body for Body {
     }
 }
 
-impl router::body::Body for Body {
+impl wilbur_core::body::Body for Body {
     fn empty() -> Self {
         Body {
             inner: Inner::Reusable(Bytes::new()),

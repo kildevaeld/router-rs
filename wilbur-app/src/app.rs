@@ -1,21 +1,19 @@
-pub use body::Body;
-use context::{Context, RouterContext};
-use router::{MethodFilter, Middleware, Modifier, Routing};
-use uhuh_container::modules::{Builder, Module};
+pub use crate::body::Body;
+use crate::context::{Context, RouterContext};
+use wilbur_container::modules::{Builder, Module};
+use wilbur_core::{Handler, Middleware, Modifier};
+#[cfg(feature = "hyper")]
+use wilbur_routing::service::RouterService;
+use wilbur_routing::{MethodFilter, RouteError, Routing};
 
-mod body;
-mod context;
-mod error;
+#[cfg(feature = "serve")]
+use {
+    crate::error::Error, http_body_util::BodyExt, hyper::server::conn::http1,
+    hyper::service::Service, hyper_util::rt::TokioIo, std::net::SocketAddr,
+    tokio::net::TcpListener,
+};
 
-pub use error::Error;
-
-use http_body_util::BodyExt;
-use hyper::server::conn::http1;
-use hyper::service::Service;
-use hyper_util::rt::TokioIo;
 use std::convert::Infallible;
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
 
 pub struct App {
     builder: Builder<RouterContext>,
@@ -30,7 +28,7 @@ impl App {
 
     pub fn add_module<M>(&mut self, module: M)
     where
-        M: uhuh_container::modules::Module<RouterContext> + 'static,
+        M: wilbur_container::modules::Module<RouterContext> + 'static,
         M::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
     {
         self.builder.add_module(module);
@@ -38,15 +36,15 @@ impl App {
 
     pub fn module<M>(mut self, module: M) -> Self
     where
-        M: uhuh_container::modules::Module<RouterContext> + 'static,
+        M: wilbur_container::modules::Module<RouterContext> + 'static,
         M::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
     {
         self.builder.add_module(module);
         self
     }
 
-    #[cfg(feature = "send")]
-    pub async fn serve(self, addr: SocketAddr) -> Result<(), error::Error> {
+    #[cfg(all(feature = "send", feature = "serve"))]
+    pub async fn serve(self, addr: SocketAddr) -> Result<(), Error> {
         let (router, context) = self.builder.build(RouterContext::new()).await.unwrap();
 
         let listener = TcpListener::bind(addr).await?;
@@ -62,7 +60,7 @@ impl App {
                     let srv = svc.clone();
                     async move {
                         let req = req.map(|body: hyper::body::Incoming| {
-                            Body::from_streaming(body.map_err(error::Error::from))
+                            Body::from_streaming(body.map_err(Error::from))
                         });
 
                         srv.call(req).await
@@ -77,10 +75,8 @@ impl App {
         Ok(())
     }
 
-    #[cfg(not(feature = "send"))]
-    pub async fn serve(self, addr: SocketAddr) -> Result<(), error::Error> {
-        use body::Body;
-
+    #[cfg(all(not(feature = "send"), feature = "serve"))]
+    pub async fn serve(self, addr: SocketAddr) -> Result<(), Error> {
         let (router, context) = self.builder.build(RouterContext::new()).await.unwrap();
 
         let listener = TcpListener::bind(addr).await?;
@@ -96,7 +92,7 @@ impl App {
                     let srv = svc.clone();
                     async move {
                         let req = req.map(|body: hyper::body::Incoming| {
-                            Body::from_streaming(body.map_err(error::Error::from))
+                            Body::from_streaming(body.map_err(Error::from))
                         });
 
                         srv.call(req).await
@@ -108,23 +104,24 @@ impl App {
             });
         }
     }
+
+    #[cfg(feature = "hyper")]
+    pub async fn into_service(self) -> RouterService<Body, Context> {
+        let (router, context) = self.builder.build(RouterContext::new()).await.unwrap();
+        router.into_service(context)
+    }
 }
 
-impl Routing<Context, Body> for App {
-    type Handler = <RouterContext as Routing<Context, Body>>::Handler;
+impl Routing<Body, Context> for App {
+    type Handler = <RouterContext as Routing<Body, Context>>::Handler;
 
-    fn modifier<M: router::Modifier<Body, Context> + 'static>(&mut self, modifier: M) {
+    fn modifier<M: Modifier<Body, Context> + 'static>(&mut self, modifier: M) {
         self.builder.add_module(ModifierModule(modifier));
     }
 
-    fn route<T>(
-        &mut self,
-        method: router::MethodFilter,
-        path: &str,
-        handler: T,
-    ) -> Result<(), router::Error>
+    fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), RouteError>
     where
-        T: router::Handler<Body, Context> + 'static,
+        T: Handler<Body, Context> + 'static,
     {
         self.builder.add_module(RouteModule {
             method,
@@ -135,12 +132,20 @@ impl Routing<Context, Body> for App {
         Ok(())
     }
 
-    fn middleware<M>(&mut self, middleware: M) -> Result<(), router::Error>
+    fn middleware<M>(&mut self, middleware: M) -> Result<(), RouteError>
     where
-        M: router::Middleware<Body, Context, Self::Handler> + 'static,
+        M: Middleware<Body, Context, Self::Handler> + 'static,
     {
         self.builder.add_module(MiddlewareModule(middleware));
         Ok(())
+    }
+
+    fn merge(&mut self, router: Self) -> Result<(), RouteError> {
+        todo!()
+    }
+
+    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
+        todo!()
     }
 }
 
@@ -171,9 +176,9 @@ struct RouteModule<T> {
 
 impl<T> Module<RouterContext> for RouteModule<T>
 where
-    T: router::Handler<Body, Context> + 'static,
+    T: Handler<Body, Context> + 'static,
 {
-    type Error = router::Error;
+    type Error = RouteError;
 
     fn build<'a>(
         self,
@@ -190,9 +195,9 @@ struct MiddlewareModule<M>(M);
 
 impl<M> Module<RouterContext> for MiddlewareModule<M>
 where
-    M: Middleware<Body, Context, <RouterContext as Routing<Context, Body>>::Handler> + 'static,
+    M: Middleware<Body, Context, <RouterContext as Routing<Body, Context>>::Handler> + 'static,
 {
-    type Error = router::Error;
+    type Error = RouteError;
 
     fn build<'a>(
         self,
