@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub use crate::error::Error;
+pub use crate::error::RouteError;
 
 use crate::Routing;
 use crate::params::UrlParams;
 #[cfg(any(feature = "tower", feature = "hyper"))]
 use crate::service::RouterService;
 use heather::{HSend, HSendSync, Hrc};
-use hyper::{Request, Response};
-use routing::router::MethodFilter;
+use http::{Request, Response};
 use routing::Params;
+use routing::router::MethodFilter;
 use wilbur_core::handler::{BoxHandler, box_handler};
 use wilbur_core::middleware::{BoxMiddleware, box_middleware};
 use wilbur_core::modifier::{BoxModifier, ModifierList, modifier_box};
@@ -31,13 +31,13 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Builder<B, C> {
         }
     }
 
-    pub fn mount(&mut self, path: &str, router: impl Into<Router<B, C>>) -> Result<(), Error> {
+    pub fn mount(&mut self, path: &str, router: impl Into<Router<B, C>>) -> Result<(), RouteError> {
         let router = router.into();
         self.tree.mount(path, router.tree)?;
         Ok(())
     }
 
-    pub fn merge(&mut self, router: impl Into<Router<B, C>>) -> Result<(), Error> {
+    pub fn merge(&mut self, router: impl Into<Router<B, C>>) -> Result<(), RouteError> {
         let router = router.into();
         self.tree.merge(router.tree)?;
         Ok(())
@@ -68,7 +68,7 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
         self.modifiers.push(modifier_box(modifier));
     }
 
-    fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
+    fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), RouteError>
     where
         T: Handler<B, C> + 'static,
     {
@@ -76,7 +76,7 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
         Ok(())
     }
 
-    fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
+    fn middleware<M>(&mut self, middleware: M) -> Result<(), RouteError>
     where
         M: Middleware<B, C, Self::Handler> + 'static,
     {
@@ -84,13 +84,13 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
         Ok(())
     }
 
-    fn merge(&mut self, router: Self) -> Result<(), Error> {
+    fn merge(&mut self, router: Self) -> Result<(), RouteError> {
         let router: Router<B, C> = router.into();
         self.tree.merge(router.tree)?;
         Ok(())
     }
 
-    fn mount(&mut self, path: &str, router: Self) -> Result<(), Error> {
+    fn mount(&mut self, path: &str, router: Self) -> Result<(), RouteError> {
         let router: Router<B, C> = router.into();
         self.tree.mount(path, router.tree)?;
         Ok(())

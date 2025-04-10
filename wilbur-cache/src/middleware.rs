@@ -2,11 +2,11 @@ use core::mem;
 use headers::{CacheControl, HeaderMapExt};
 use heather::HBoxFuture;
 use keyval::Cbor;
-use router::{
+use std::time::{Duration, Instant};
+use wilbur_core::{
     Bytes, Error, Handler, HeaderMap, IntoResponse, Middleware, Request, Response, StatusCode,
     body::{Body as HttpBody, to_bytes},
 };
-use std::time::{Duration, Instant};
 
 pub type Store = keyval::KeyVal<Box<dyn keyval::TtlStore>>;
 
@@ -101,7 +101,7 @@ where
     type Response = Response<B>;
 
     type Future<'a>
-        = HBoxFuture<'a, Result<Self::Response, router::Error>>
+        = HBoxFuture<'a, Result<Self::Response, Error>>
     where
         Self: 'a,
         C: 'a;

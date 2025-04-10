@@ -1,0 +1,21 @@
+[package]
+name = "wilbur-cookies"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+# quick = ["rquickjs", "rquickjs-util", "uhuh-quick"]
+secure = ["private", "signed"]
+private = ["cookie/private"]
+signed = ["cookie/signed"]
+
+
+[dependencies]
+cookie = { version = "0.18", features = ["signed", "percent-encode"] }
+serde.workspace = true
+http.workspace = true
+heather.workspace = true
+wilbur-core = { path = "../wilbur-core" }
+parking_lot = { version = "0.12" }
+wilbur-container = { path = "../wilbur-container" }
+wilbur-routing = { path = "../wilbur-routing" }

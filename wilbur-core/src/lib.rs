@@ -19,3 +19,10 @@ pub use self::{
     middleware_fn::{MiddlewareFn, middleware},
     modifier::{Modifier, Modify},
 };
+
+// Export stuff that maybe should be handled by this crate
+pub use http::{Request, Response};
+
+// Export common http types
+pub use bytes::Bytes;
+pub use http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header};

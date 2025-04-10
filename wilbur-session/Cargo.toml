@@ -1,0 +1,23 @@
+[package]
+name = "wilbur-session"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wilbur-routing = { path = "../wilbur-routing" }
+wilbur-container = { path = "../wilbur-container" }
+wilbur-core = { path = "../wilbur-core" }
+wilbur-cookies = { path = "../wilbur-cookies", features = ["signed"] }
+
+
+keyval.workspace = true
+uuid = { version = "1", features = ["v4"] }
+arc-swap = "1"
+
+serde.workspace = true
+http.workspace = true
+heather.workspace = true
+
+vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs", features = [
+    "serde",
+] }

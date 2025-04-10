@@ -5,11 +5,15 @@ resolver = "2"
 members = [
     "router",
     "router-app",
-    "router-cache",
     "router-cookies",
     "router-session",
     "routing",
-    "uhuh-container", "wilbur-core", "wilbur-routing",
+    "uhuh-container",
+    "wilbur-core",
+    "wilbur-routing",
+    "wilbur-container",
+    "wilbur-cache", "wilbur-cookies", "wilbur-session",
+
 ]
 
 

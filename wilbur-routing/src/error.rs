@@ -1,17 +1,17 @@
 #[derive(Debug)]
-pub enum Error {
+pub enum RouteError {
     Parse(routing::ParseError),
     Route(routing::router::RouteError),
 }
 
-impl From<routing::ParseError> for Error {
+impl From<routing::ParseError> for RouteError {
     fn from(value: routing::ParseError) -> Self {
-        Error::Parse(value)
+        RouteError::Parse(value)
     }
 }
 
-impl From<routing::router::RouteError> for Error {
+impl From<routing::router::RouteError> for RouteError {
     fn from(value: routing::router::RouteError) -> Self {
-        Error::Route(value)
+        RouteError::Route(value)
     }
 }
