@@ -4,6 +4,7 @@ mod from_request;
 pub mod handler;
 mod into_response;
 pub mod middleware;
+mod middleware_fn;
 pub mod modifier;
 
 mod handler_fn;
@@ -15,5 +16,6 @@ pub use self::{
     handler_fn::{FuncHandler, handler},
     into_response::IntoResponse,
     middleware::Middleware,
+    middleware_fn::{MiddlewareFn, middleware},
     modifier::{Modifier, Modify},
 };

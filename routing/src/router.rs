@@ -1,5 +1,5 @@
+use alloc::{boxed::Box, format};
 use core::{fmt, str::FromStr};
-use std::{boxed::Box, format};
 
 use alloc::{vec, vec::Vec};
 
@@ -9,11 +9,11 @@ use crate::{AsSegments, Params, PathRouter};
 
 #[derive(Debug)]
 pub struct RouteError {
-    inner: Box<dyn std::error::Error + Send + Sync>,
+    inner: Box<dyn core::error::Error + Send + Sync>,
 }
 
 impl RouteError {
-    pub fn new<T: Into<Box<dyn std::error::Error + Send + Sync>>>(error: T) -> RouteError {
+    pub fn new<T: Into<Box<dyn core::error::Error + Send + Sync>>>(error: T) -> RouteError {
         RouteError {
             inner: error.into(),
         }
@@ -26,8 +26,7 @@ impl fmt::Display for RouteError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for RouteError {
+impl core::error::Error for RouteError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         Some(&*self.inner)
     }
@@ -42,6 +41,7 @@ bitflags::bitflags! {
        const PATCH = 1 << 3;
        const DELETE = 1 << 4;
        const HEAD = 1 << 5;
+       const OPTIONS = 1 << 6;
     }
 }
 
@@ -61,6 +61,7 @@ impl FromStr for MethodFilter {
             "PUT" => MethodFilter::PUT,
             "DELETE" => MethodFilter::DELETE,
             "HEAD" => MethodFilter::HEAD,
+            "OPTIONS" => MethodFilter::OPTIONS,
             _ => return Err(RouteError::new(format!("Unknown method: '{s}'"))),
         };
 
@@ -77,6 +78,7 @@ impl From<Method> for MethodFilter {
             Method::PUT => MethodFilter::PUT,
             Method::DELETE => MethodFilter::DELETE,
             Method::HEAD => MethodFilter::HEAD,
+            Method::OPTIONS => MethodFilter::OPTIONS,
             _ => todo!(),
         }
     }

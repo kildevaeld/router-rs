@@ -111,7 +111,6 @@ impl<H> PathRouter<H> {
                     current = node;
                 }
                 Segment::Parameter(param) => {
-                    //
                     if let Some(wildcard) = &self.arena[current].wildcard {
                         // TODO: Check if names is the same
                         current = wildcard.handle;
@@ -127,7 +126,6 @@ impl<H> PathRouter<H> {
                     };
                 }
                 Segment::Star(star) => {
-                    //
                     if let Some(star) = &self.arena[current].catchall {
                         current = star.handle;
                     } else {

@@ -34,7 +34,8 @@ async fn main() {
                     ),
                 )
                 .unwrap(),
-            );
+            )
+            .unwrap();
 
             app.route(
                 MethodFilter::GET,
