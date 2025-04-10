@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use heather::{HBoxFuture, HSend};
 use http::{Request, Response};
 
-use crate::{Error, FromRequest, Handler, IntoResponse};
+use crate::{FromRequest, Handler, IntoResponse};
 
 pub fn handler<B, C, T, I>(func: T) -> FuncHandler<T, I, B, C>
 where
@@ -48,8 +48,10 @@ where
 {
     type Response = Response<B>;
 
+    type Error = I::Error;
+
     type Future<'a>
-        = HBoxFuture<'a, Result<Self::Response, Error>>
+        = HBoxFuture<'a, Result<Self::Response, Self::Error>>
     where
         Self: 'a,
         C: 'a;

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::boxed::{BoxHandler, BoxMiddleware, box_handler, box_middleware};
 pub use crate::error::Error;
 
 use crate::Routing;
@@ -11,8 +12,7 @@ use heather::{HSend, HSendSync, Hrc};
 use hyper::{Request, Response};
 use routing::Params;
 use routing::router::MethodFilter;
-use wilbur_core::handler::{BoxHandler, box_handler};
-use wilbur_core::middleware::{BoxMiddleware, box_middleware};
+
 use wilbur_core::modifier::{BoxModifier, ModifierList, modifier_box};
 use wilbur_core::{Handler, Middleware, Modifier, Modify};
 
@@ -71,6 +71,7 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
     fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
+        T::Error: Into<Error>,
     {
         self.tree.route(method, path, box_handler(handler))?;
         Ok(())
@@ -79,6 +80,7 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
     fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
     where
         M: Middleware<B, C, Self::Handler> + 'static,
+        M::Handler: Handler<B, C>,
     {
         self.middlewares.push(box_middleware(middleware));
         Ok(())

@@ -2,7 +2,7 @@ use heather::{HBoxFuture, HSend, HSendSync, Hrc};
 use http::{Request, Response};
 use std::future::Future;
 
-use crate::{error::Error, handler::Handler, into_response::IntoResponse, middleware::Middleware};
+use crate::{handler::Handler, into_response::IntoResponse, middleware::Middleware};
 
 pub trait Modifier<B, C>: HSendSync {
     type Modify: Modify<B, C>;
@@ -105,9 +105,9 @@ where
     H: Handler<B, C> + HSendSync + Clone + 'static,
     H::Response: IntoResponse<B>,
 {
-    type Handle = ModifierMiddlewareHandler<B, C, H>;
+    type Handler = ModifierMiddlewareHandler<B, C, H>;
 
-    fn wrap(&self, handler: H) -> Self::Handle {
+    fn wrap(&self, handler: H) -> Self::Handler {
         ModifierMiddlewareHandler {
             modifiers: self.modifiers.clone(),
             handler,
@@ -127,9 +127,10 @@ where
     H: Handler<B, C> + HSendSync + Clone + 'static,
     H::Response: IntoResponse<B>,
 {
+    type Error = H::Error;
     type Response = Response<B>;
 
-    type Future<'a> = HBoxFuture<'a, Result<Self::Response, Error>>;
+    type Future<'a> = HBoxFuture<'a, Result<Self::Response, Self::Error>>;
 
     fn call<'a>(&'a self, context: &'a C, mut req: Request<B>) -> Self::Future<'a> {
         let service = self.handler.clone();

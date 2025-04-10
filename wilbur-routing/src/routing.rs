@@ -10,11 +10,15 @@ pub trait Routing<B, C> {
 
     fn route<T>(&mut self, method: MethodFilter, path: &str, handler: T) -> Result<(), Error>
     where
-        T: Handler<B, C> + 'static;
+        T: Handler<B, C> + 'static,
+        T::Error: Into<Error>;
 
     fn middleware<M>(&mut self, middleware: M) -> Result<(), Error>
     where
-        M: Middleware<B, C, Self::Handler> + 'static;
+        M: Middleware<B, C, Self::Handler> + 'static,
+        M::Handler: Handler<B, C>;
+    // <M::Handler as Handler<B, C>>::Error: Into<Error>;
+    // <M::Handler as Handler<B, C>>::Error: Into<Error>;
 
     fn mount(&mut self, path: &str, router: Self) -> Result<(), Error>;
 
@@ -25,6 +29,7 @@ pub trait RoutingExt<B, C>: Routing<B, C> {
     fn get<T>(&mut self, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
+        T::Error: Into<Error>,
     {
         self.route(MethodFilter::GET, path, handler)
     }
@@ -32,6 +37,7 @@ pub trait RoutingExt<B, C>: Routing<B, C> {
     fn post<T>(&mut self, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
+        T::Error: Into<Error>,
     {
         self.route(MethodFilter::POST, path, handler)
     }
@@ -39,6 +45,7 @@ pub trait RoutingExt<B, C>: Routing<B, C> {
     fn patch<T>(&mut self, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
+        T::Error: Into<Error>,
     {
         self.route(MethodFilter::PATCH, path, handler)
     }
@@ -46,6 +53,7 @@ pub trait RoutingExt<B, C>: Routing<B, C> {
     fn put<T>(&mut self, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
+        T::Error: Into<Error>,
     {
         self.route(MethodFilter::PUT, path, handler)
     }
@@ -53,6 +61,7 @@ pub trait RoutingExt<B, C>: Routing<B, C> {
     fn delete<T>(&mut self, path: &str, handler: T) -> Result<(), Error>
     where
         T: Handler<B, C> + 'static,
+        T::Error: Into<Error>,
     {
         self.route(MethodFilter::DELETE, path, handler)
     }

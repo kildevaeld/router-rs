@@ -1,16 +1,15 @@
 pub mod body;
-mod error;
+// mod error;
 mod from_request;
-pub mod handler;
+mod handler;
 mod into_response;
-pub mod middleware;
+mod middleware;
 mod middleware_fn;
 pub mod modifier;
 
 mod handler_fn;
 
 pub use self::{
-    error::Error,
     from_request::{FromRequest, FromRequestParts},
     handler::Handler,
     handler_fn::{FuncHandler, handler},

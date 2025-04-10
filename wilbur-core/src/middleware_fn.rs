@@ -23,12 +23,13 @@ impl<T: Clone, B, C, H, U> Clone for MiddlewareFn<T, B, C, H, U> {
 impl<T, B, C, H, U> Middleware<B, C, H> for MiddlewareFn<T, B, C, H, U>
 where
     T: Fn(H) -> U + HSendSync,
+    H: Handler<B, C>,
     U: Handler<B, C>,
     B: HSend,
 {
-    type Handle = U;
+    type Handler = U;
 
-    fn wrap(&self, handle: H) -> Self::Handle {
+    fn wrap(&self, handle: H) -> Self::Handler {
         (self.0)(handle)
     }
 }

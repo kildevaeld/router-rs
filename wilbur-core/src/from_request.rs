@@ -1,10 +1,27 @@
+use std::convert::Infallible;
+
 use heather::HBoxFuture;
 use http::{HeaderMap, Request, Uri, request::Parts};
 
-use crate::Error;
+#[derive(Debug)]
+pub struct FromRequestError(Box<dyn core::error::Error + Send + Sync>);
+
+impl core::fmt::Display for FromRequestError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl core::error::Error for FromRequestError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        Some(&*self.0)
+    }
+}
 
 pub trait FromRequestParts<C>: Sized {
-    type Future<'a>: Future<Output = Result<Self, Error>>
+    type Error;
+
+    type Future<'a>: Future<Output = Result<Self, Self::Error>>
     where
         C: 'a;
 
@@ -12,7 +29,9 @@ pub trait FromRequestParts<C>: Sized {
 }
 
 pub trait FromRequest<B, C>: Sized {
-    type Future<'a>: Future<Output = Result<Self, Error>>
+    type Error;
+
+    type Future<'a>: Future<Output = Result<Self, Self::Error>>
     where
         C: 'a,
         B: 'a;
@@ -21,7 +40,8 @@ pub trait FromRequest<B, C>: Sized {
 }
 
 impl<C: 'static, B: 'static> FromRequest<B, C> for Request<B> {
-    type Future<'a> = core::future::Ready<Result<Self, Error>>;
+    type Error = Infallible;
+    type Future<'a> = core::future::Ready<Result<Self, Self::Error>>;
 
     fn from_request<'a>(parts: Request<B>, _state: &'a C) -> Self::Future<'a> {
         core::future::ready(Ok(parts))
@@ -29,7 +49,9 @@ impl<C: 'static, B: 'static> FromRequest<B, C> for Request<B> {
 }
 
 impl<C: 'static, B: 'static> FromRequest<B, C> for () {
-    type Future<'a> = core::future::Ready<Result<(), Error>>;
+    type Error = Infallible;
+
+    type Future<'a> = core::future::Ready<Result<(), Self::Error>>;
 
     fn from_request<'a>(_parts: Request<B>, _state: &'a C) -> Self::Future<'a> {
         core::future::ready(Ok(()))
@@ -44,7 +66,9 @@ macro_rules! from_request {
             B: 'static,
             $first: FromRequest<B, C>,
         {
-            type Future<'a> = HBoxFuture<'a, Result<($first,), Error>>;
+            type Error = $first::Error;
+
+            type Future<'a> = HBoxFuture<'a, Result<($first,), Self::Error>>;
 
             fn from_request<'a>(parts: Request<B>, state: &'a C) -> Self::Future<'a> {
                 Box::pin(async move {
@@ -58,12 +82,14 @@ macro_rules! from_request {
         where
             C: 'static,
             $first: FromRequestParts<C>,
+            $first::Error: Into<Box<dyn core::error::Error + Send + Sync>>
         {
-            type Future<'a> = HBoxFuture<'a, Result<($first,), Error>>;
+            type Error = FromRequestError;
+            type Future<'a> = HBoxFuture<'a, Result<($first,), Self::Error>>;
 
             fn from_request_parts<'a>(parts: &'a mut Parts, state: &'a C) -> Self::Future<'a> {
                 Box::pin(async move {
-                    let ret = $first::from_request_parts(parts, state).await?;
+                    let ret = $first::from_request_parts(parts, state).await.map_err(|err|FromRequestError(err.into()))?;
                     Ok((ret,))
                 })
             }
@@ -77,11 +103,15 @@ macro_rules! from_request {
             C: 'static,
             B: 'static,
             $first: FromRequest<B, C>,
+            $first::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
             $(
-                $rest: FromRequestParts<C>
+                $rest: FromRequestParts<C>,
+                $rest::Error: Into<Box<dyn core::error::Error + Send + Sync>>
+
             ),+
         {
-            type Future<'a> = HBoxFuture<'a, Result<($($rest),+,$first), Error>>;
+            type Error = FromRequestError;
+            type Future<'a> = HBoxFuture<'a, Result<($($rest),+,$first), Self::Error>>;
 
             #[allow(non_snake_case, unused_parens)]
             fn from_request<'a>(req: Request<B>, state: &'a C) -> Self::Future<'a> {
@@ -91,10 +121,10 @@ macro_rules! from_request {
 
                     let ($($rest),+) = (
                         $(
-                            $rest::from_request_parts(&mut parts, state).await?
+                            $rest::from_request_parts(&mut parts, state).await.map_err(|err|FromRequestError(err.into()))?
                         ),+
                     );
-                    let ret = $first::from_request(Request::from_parts(parts, data), state).await?;
+                    let ret = $first::from_request(Request::from_parts(parts, data), state).await.map_err(|err|FromRequestError(err.into()))?;
                     Ok(($($rest),+,ret))
                 })
             }
@@ -104,11 +134,14 @@ macro_rules! from_request {
         where
             C: 'static,
             $first: FromRequestParts<C>,
+            $first::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
             $(
-                $rest: FromRequestParts<C>
+                $rest: FromRequestParts<C>,
+                $rest::Error: Into<Box<dyn core::error::Error + Send + Sync>>
             ),+
         {
-            type Future<'a> = HBoxFuture<'a, Result<($($rest),+,$first), Error>>;
+            type Error = FromRequestError;
+            type Future<'a> = HBoxFuture<'a, Result<($($rest),+,$first), Self::Error>>;
 
             #[allow(non_snake_case, unused_parens)]
             fn from_request_parts<'a>(parts: &'a mut Parts, state: &'a C) -> Self::Future<'a> {
@@ -117,10 +150,10 @@ macro_rules! from_request {
 
                     let ($($rest),+) = (
                         $(
-                            $rest::from_request_parts(parts, state).await?
+                            $rest::from_request_parts(parts, state).await.map_err(|err|FromRequestError(err.into()))?
                         ),+
                     );
-                    let ret = $first::from_request_parts(parts, state).await?;
+                    let ret = $first::from_request_parts(parts, state).await.map_err(|err|FromRequestError(err.into()))?;
                     Ok(($($rest),+,ret))
                 })
             }
@@ -129,14 +162,16 @@ macro_rules! from_request {
     ($($ty: ty => $method: ident),+) => {
         $(
             impl<C> FromRequestParts<C> for $ty {
-                type Future<'a> = core::future::Ready<Result<Self, Error>> where Self: 'a, C: 'a;
+                type Error = Infallible;
+                type Future<'a> = core::future::Ready<Result<Self, Self::Error>> where Self: 'a, C: 'a;
                 fn from_request_parts<'a>(parts: &'a mut Parts, _state: &'a C) -> Self::Future<'a> {
                     core::future::ready(Ok(parts.$method.clone()))
                 }
             }
 
             impl<B: 'static, C, > FromRequest<B, C> for $ty {
-                type Future<'a> = core::future::Ready<Result<Self, Error>> where Self: 'a, C: 'a;
+                type Error = Infallible;
+                type Future<'a> = core::future::Ready<Result<Self, Self::Error>> where Self: 'a, C: 'a;
                 fn from_request<'a>(req: Request<B>, _state: &'a C) -> Self::Future<'a> {
                     core::future::ready(Ok(req.$method().clone()))
                 }
