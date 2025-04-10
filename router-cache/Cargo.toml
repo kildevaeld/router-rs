@@ -1,0 +1,19 @@
+[package]
+name = "router-cache"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+router = { path = "../router" }
+serde.workspace = true
+http-serde = { version = "2" }
+headers.workspace = true
+# http.workspace = true
+# http-body.workspace = true
+# http-body-util.workspace = true
+heather.workspace = true
+bytes = { workspace = true, features = ["serde"] }
+
+keyval = { git = "https://github.com/kildevaeld/keyval-rs", features = [
+    "cbor",
+] }

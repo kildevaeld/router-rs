@@ -5,6 +5,7 @@ resolver = "2"
 members = [
     "router",
     "router-app",
+    "router-cache",
     "router-cookies",
     "router-session",
     "routing",
@@ -13,10 +14,21 @@ members = [
 
 
 [workspace.dependencies]
-http = { version = "1" }
-serde = { version = "1", features = ["derive"] }
+http = { version = "1", default-features = false }
+http-body-util = { version = "0.1", default-features = false }
+http-body = { version = "1", default-features = false }
+headers = { version = "0.4" }
+serde = { version = "1", default-features = false, features = ["derive"] }
+bytes = { version = "1", default-features = false }
 heather = { git = "https://github.com/kildevaeld/heather", features = [
     "std",
     "alloc",
 ] }
 tracing = { version = "0.1" }
+
+keyval = { git = "https://github.com/kildevaeld/keyval-rs", default-features = false, features = [
+    "cbor",
+    "bytes",
+    "memory",
+    "ttlwrap",
+] }

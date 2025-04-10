@@ -1,8 +1,12 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::Duration};
 
 use http::{Request, Response};
-use router::{MethodFilter, Routing, handle_fn, handler};
+use router::{MethodFilter, PathMiddleware, Routing, handle_fn, handler};
 use router_app::{App, Body};
+use router_cache::{
+    CacheMiddlware, Store,
+    keyval::{Memory, StoreExt},
+};
 use router_session::{Session, SessionModule};
 use tokio::task::LocalSet;
 
@@ -20,6 +24,17 @@ async fn main() {
 
             app.add_module(CookiesModule);
             app.add_module(SessionModule::default());
+
+            app.middleware(
+                PathMiddleware::new(
+                    "/sub",
+                    CacheMiddlware::new(
+                        Store::new(Box::new(Memory::new().into_ttl())),
+                        Duration::from_secs(60),
+                    ),
+                )
+                .unwrap(),
+            );
 
             app.route(
                 MethodFilter::GET,

@@ -11,6 +11,8 @@ mod router;
 mod service_ext;
 mod traits;
 
+pub mod body;
+
 #[cfg(feature = "tower")]
 pub use self::service_ext::ServiceExt;
 pub use self::{
@@ -35,3 +37,10 @@ use uhuh_container::modules::BuildContext;
 pub trait RouterBuildContext: BuildContext {
     type Body;
 }
+
+// Export stuff that maybe should be handled by this crate
+pub use http::{Request, Response};
+
+// Export common http types
+pub use bytes::Bytes;
+pub use http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header};

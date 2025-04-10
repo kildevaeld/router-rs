@@ -78,6 +78,14 @@ impl http_body::Body for Body {
     }
 }
 
+impl router::body::Body for Body {
+    fn empty() -> Self {
+        Body {
+            inner: Inner::Reusable(Bytes::new()),
+        }
+    }
+}
+
 impl<'a> From<&'a str> for Body {
     fn from(value: &'a str) -> Self {
         value.as_bytes().to_vec().into()
