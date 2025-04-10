@@ -84,17 +84,17 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
         Ok(())
     }
 
-    fn merge(&mut self, router: Self) -> Result<(), RouteError> {
-        let router: Router<B, C> = router.into();
-        self.tree.merge(router.tree)?;
-        Ok(())
-    }
+    // fn merge(&mut self, router: Self) -> Result<(), RouteError> {
+    //     let router: Router<B, C> = router.into();
+    //     self.tree.merge(router.tree)?;
+    //     Ok(())
+    // }
 
-    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
-        let router: Router<B, C> = router.into().into();
-        self.tree.mount(path, router.tree)?;
-        Ok(())
-    }
+    // fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
+    //     let router: Router<B, C> = router.into().into();
+    //     self.tree.mount(path, router.tree)?;
+    //     Ok(())
+    // }
 }
 
 impl<B, C> From<Builder<B, C>> for Router<B, C> {

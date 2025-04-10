@@ -63,15 +63,15 @@ impl Routing<Body, Context> for RouterContext {
         self.router.middleware(middleware)
     }
 
-    fn merge(&mut self, router: Self) -> Result<(), RouteError> {
-        self.router.merge(router.router)?;
-        Ok(())
-    }
+    // fn merge(&mut self, router: Self) -> Result<(), RouteError> {
+    //     self.router.merge(router.router)?;
+    //     Ok(())
+    // }
 
-    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
-        self.router.mount(path, router.into().router)?;
-        Ok(())
-    }
+    // fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
+    //     self.router.mount(path, router.into().router)?;
+    //     Ok(())
+    // }
 }
 
 impl BuildContext for RouterContext {

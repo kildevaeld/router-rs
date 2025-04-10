@@ -16,9 +16,9 @@ pub trait Routing<B, C>: Sized {
     where
         M: Middleware<B, C, Self::Handler> + 'static;
 
-    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError>;
+    // fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError>;
 
-    fn merge(&mut self, router: Self) -> Result<(), RouteError>;
+    // fn merge(&mut self, router: Self) -> Result<(), RouteError>;
 }
 
 pub trait RoutingExt<B, C>: Routing<B, C> {

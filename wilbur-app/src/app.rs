@@ -140,13 +140,13 @@ impl Routing<Body, Context> for App {
         Ok(())
     }
 
-    fn merge(&mut self, router: Self) -> Result<(), RouteError> {
-        todo!()
-    }
+    // fn merge(&mut self, router: Self) -> Result<(), RouteError> {
+    //     todo!()
+    // }
 
-    fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
-        todo!()
-    }
+    // fn mount<T: Into<Self>>(&mut self, path: &str, router: T) -> Result<(), RouteError> {
+    //     todo!()
+    // }
 }
 
 struct ModifierModule<M>(M);
@@ -208,8 +208,4 @@ where
             Ok(())
         }
     }
-}
-
-pub fn app() -> App {
-    App::new()
 }

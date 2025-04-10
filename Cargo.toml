@@ -10,8 +10,7 @@ members = [
     "wilbur-cache",
     "wilbur-cookies",
     "wilbur-session",
-    "wilbur-app",
-
+    "wilbur-app", "wilbur-quick",
 ]
 
 

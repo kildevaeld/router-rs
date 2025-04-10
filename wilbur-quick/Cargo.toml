@@ -1,0 +1,27 @@
+[package]
+name = "wilbur-quick"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wilbur-core = { path = "../wilbur-core" }
+wilbur-routing = { path = "../wilbur-routing" }
+wilbur-container = { path = "../wilbur-container" }
+wilbur-cache = { path = "../wilbur-cache", optional = true }
+wilbur-cookies = { path = "../wilbur-cookies", optional = true }
+wilbur-session = { path = "../wilbur-session", optional = true }
+
+rquickjs = { version = "0.8" }
+rquickjs-modules = { git = "https://github.com/fairy-render/klaver" }
+rquickjs-util = { git = "https://github.com/fairy-render/klaver" }
+klaver-wintercg = { git = "https://github.com/fairy-render/klaver", default-features = false, features = [
+  "http",
+] }
+
+reggie = { git = "https://github.com/fairy-render/reggie", features = ["json"] }
+
+http.workspace = true
+http-body.workspace = true
+http-body-util.workspace = true
+
+routing = { path = "../routing", features = ["router"] }
