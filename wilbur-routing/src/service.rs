@@ -1,7 +1,8 @@
 use heather::{HBoxFuture, HSend, HSendSync, Hrc};
 use hyper::{Request, Response};
+use wilbur_core::Error;
 
-use crate::{error::Error, router::Router};
+use crate::router::Router;
 
 pub struct RouterService<B, C> {
     pub(crate) router: Hrc<Router<B, C>>,

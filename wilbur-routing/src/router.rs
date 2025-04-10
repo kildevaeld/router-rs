@@ -9,12 +9,12 @@ use crate::params::UrlParams;
 use crate::service::RouterService;
 use heather::{HSend, HSendSync, Hrc};
 use hyper::{Request, Response};
-use routing::Params;
 use routing::router::MethodFilter;
+use routing::{Params, Route};
 use wilbur_core::handler::{BoxHandler, box_handler};
 use wilbur_core::middleware::{BoxMiddleware, box_middleware};
 use wilbur_core::modifier::{BoxModifier, ModifierList, modifier_box};
-use wilbur_core::{Handler, Middleware, Modifier, Modify};
+use wilbur_core::{Error as CoreError, Handler, Middleware, Modifier, Modify};
 
 pub struct Builder<B, C> {
     tree: routing::router::Router<BoxHandler<B, C>>,
@@ -85,10 +85,14 @@ impl<B: HSend + 'static, C: HSendSync + 'static> Routing<B, C> for Builder<B, C>
     }
 
     fn merge(&mut self, router: Self) -> Result<(), Error> {
+        let router: Router<B, C> = router.into();
+        self.tree.merge(router.tree)?;
         Ok(())
     }
 
     fn mount(&mut self, path: &str, router: Self) -> Result<(), Error> {
+        let router: Router<B, C> = router.into();
+        self.tree.mount(path, router.tree)?;
         Ok(())
     }
 }
@@ -119,7 +123,7 @@ impl<B: HSend, C: HSendSync> Router<B, C> {
         self.tree.match_route(path, method, params)
     }
 
-    pub async fn handle(&self, mut req: Request<B>, context: &C) -> Result<Response<B>, Error> {
+    pub async fn handle(&self, mut req: Request<B>, context: &C) -> Result<Response<B>, CoreError> {
         //
         let mut params = HashMap::<Arc<str>, Arc<str>>::default();
         let Some(handle) =

@@ -5,4 +5,4 @@ mod routing;
 #[cfg(any(feature = "tower", feature = "hyper"))]
 mod service;
 
-pub use self::routing::*;
+pub use self::{params::UrlParams, routing::*};
