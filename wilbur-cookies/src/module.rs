@@ -8,11 +8,12 @@ use crate::modifier::CookiesJarModifier;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CookiesConfig {}
 
+#[derive(Debug, Clone, Copy)]
 pub struct CookiesModule;
 
 impl<C> Module<C> for CookiesModule
 where
-    C: RouterBuildContext + Routing<C::Context, C::Body>,
+    C: RouterBuildContext + Routing<C::Body, C::Context>,
 {
     type Error = Infallible;
 

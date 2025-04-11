@@ -25,9 +25,9 @@ pub trait DynModule<C: BuildContext>: HSendSync {
     ) -> HBoxFuture<'a, Result<(), Box<dyn core::error::Error + Send + Sync>>>;
 }
 
-pub type BoxModule<C> = Box<dyn DynModule<C>>;
+pub type BoxModule<'a, C> = Box<dyn DynModule<C> + 'a>;
 
-impl<C> Module<C> for BoxModule<C>
+impl<C> Module<C> for BoxModule<'static, C>
 where
     C: BuildContext,
 {
@@ -69,7 +69,7 @@ where
 }
 
 pub struct Builder<C: BuildContext> {
-    modules: Vec<BoxModule<C>>,
+    modules: Vec<BoxModule<'static, C>>,
 }
 
 impl<C: BuildContext> Builder<C>

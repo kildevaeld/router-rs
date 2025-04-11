@@ -25,3 +25,9 @@ http-body.workspace = true
 http-body-util.workspace = true
 
 routing = { path = "../routing", features = ["router"] }
+heather.workspace = true
+
+
+[dev-dependencies]
+klaver = { git = "https://github.com/fairy-render/klaver" }
+wilbur-cookies = { path = "../wilbur-cookies" }

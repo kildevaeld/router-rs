@@ -3,10 +3,9 @@ use std::{collections::HashMap, pin::Pin, rc::Rc};
 use http::{Request, Response};
 use http_body_util::BodyExt;
 use reggie::RequestExt;
-use routing::{Params, PathRouter};
+use routing::Params;
 use rquickjs::{
     CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, JsLifetime, Value, class::Trace,
-    prelude::Func,
 };
 use rquickjs_util::RuntimeError;
 use rquickjs_util::{StringRef, throw_if};
@@ -16,8 +15,7 @@ use wilbur_core::modifier::{BoxModifier, ModifierList};
 use wilbur_core::{Error, Handler, Middleware, Modifier, Modify};
 use wilbur_routing::{MethodFilter, Routing};
 
-#[derive(Debug, Clone)]
-pub struct JsRouteContext {}
+use crate::context::JsRouteContext;
 
 impl<'js> IntoJs<'js> for JsRouteContext {
     fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
@@ -332,7 +330,7 @@ impl<'js> Router<'js> {
 #[rquickjs::methods]
 impl<'js> Router<'js> {
     #[qjs(constructor)]
-    fn new() -> Router<'js> {
+    pub fn new() -> Router<'js> {
         Router {
             tree: routing::router::Router::new(),
             middlewares: Vec::default(),
@@ -459,7 +457,9 @@ impl<'js> NextFunc<'js> {
         ctx: Ctx<'js>,
         req: Class<'js, klaver_wintercg::http::Request<'js>>,
     ) -> rquickjs::Result<Class<'js, klaver_wintercg::http::Response<'js>>> {
-        self.handler.call_js(ctx, req, JsRouteContext {}).await
+        self.handler
+            .call_js(ctx, req, JsRouteContext::default())
+            .await
     }
 }
 
@@ -513,7 +513,7 @@ impl<'js> ResolvedRouter<'js> {
                 req.map_body(|body| {
                     reggie::Body::from_streaming(body.map_err(reggie::Error::conn))
                 }),
-                JsRouteContext {},
+                context.clone(),
             )
             .await;
 
@@ -536,6 +536,17 @@ impl<'js> ResolvedRouter<'js> {
             }
         }
     }
+}
+
+#[derive(Trace)]
+#[rquickjs::class]
+pub struct JsApp<'js> {
+    pub router: ResolvedRouter<'js>,
+    pub context: JsRouteContext,
+}
+
+unsafe impl<'js> JsLifetime<'js> for JsApp<'js> {
+    type Changed<'to> = JsApp<'to>;
 }
 
 pub fn compose<'js>(middlewares: &[JsMiddleware<'js>], task: JsHandler<'js>) -> JsHandler<'js> {
