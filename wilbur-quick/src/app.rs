@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use heather::HBoxFuture;
-use rquickjs::{CatchResultExt, Ctx, Function};
+use rquickjs::{CatchResultExt, Class, Ctx, Function, Value};
 use rquickjs_util::RuntimeError;
 use wilbur_container::modules::{BuildContext, Module};
 
@@ -53,14 +53,17 @@ impl<'js> App<'js> {
         self.modules.push(Box::new(Wrapper(module)));
     }
 
-    pub async fn build(self, ctx: Ctx<'js>) -> (Router<'js>, JsRouteContext) {
-        let mut context = JsBuildContext::new(ctx);
+    pub async fn build(
+        self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<(Class<'js, Router<'js>>, JsRouteContext)> {
+        let mut context = JsBuildContext::new(ctx)?;
 
         for module in self.modules {
             module.call(&mut context).await;
         }
 
-        context.build().await.unwrap()
+        Ok(context.build().await.unwrap())
     }
 }
 
@@ -87,7 +90,7 @@ impl AppBuilder {
         self.inits.push(Arc::from(init));
     }
 
-    pub async fn build<'js>(&self, ctx: Ctx<'js>) {
+    pub async fn build<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         let mut app = App {
             modules: Default::default(),
         };
@@ -95,11 +98,13 @@ impl AppBuilder {
             init.init(&mut app);
         }
 
-        let (router, context) = app.build(ctx.clone()).await;
+        let (router, context) = app.build(ctx.clone()).await?;
 
-        let router = router.build();
+        let router = router.borrow_mut().build();
 
-        ctx.globals().set("Wilbur", JsApp { router, context });
+        ctx.globals().set("Wilbur", JsApp { router, context })?;
+
+        Ok(())
     }
 }
 
@@ -121,7 +126,7 @@ pub struct InitPath<S>(pub S);
 
 impl<S> Init for InitPath<S>
 where
-    S: Into<Vec<u8>> + Clone,
+    S: Into<Vec<u8>> + Clone + 'static,
 {
     fn init<'js>(&self, app: &mut App<'js>) {
         app.add_module(InitPathModule(self.0.clone()));
@@ -132,17 +137,15 @@ pub struct InitPathModule<S>(S);
 
 impl<'js, S> Module<JsBuildContext<'js>> for InitPathModule<S>
 where
-    S: Into<Vec<u8>>,
+    S: Into<Vec<u8>> + 'js,
 {
-    type Error = klaver::RuntimeError;
+    type Error = RuntimeError;
 
     fn build<'a>(
         self,
         ctx: &'a mut JsBuildContext<'js>,
     ) -> impl Future<Output = Result<(), Self::Error>> + heather::HSend + 'a {
         async move {
-            //
-
             let module = rquickjs::Module::import(&*ctx, self.0)
                 .catch(&*ctx)?
                 .into_future::<rquickjs::Object>()
@@ -150,6 +153,12 @@ where
                 .catch(&*ctx)?;
 
             let func = module.get::<_, Function>("default").catch(&*ctx)?;
+
+            let output = func.call::<_, Value>((ctx.router.clone(),)).catch(&*ctx)?;
+
+            if let Some(promise) = output.as_promise() {
+                promise.clone().into_future::<()>().await.catch(&*ctx)?;
+            }
 
             Ok(())
         }

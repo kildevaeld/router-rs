@@ -11,7 +11,7 @@ use rquickjs_util::RuntimeError;
 use rquickjs_util::{StringRef, throw_if};
 use wilbur_core::handler::{BoxHandler, box_handler};
 use wilbur_core::middleware::BoxMiddleware;
-use wilbur_core::modifier::{BoxModifier, ModifierList};
+use wilbur_core::modifier::{BoxModifier, ModifierList, modifier_box};
 use wilbur_core::{Error, Handler, Middleware, Modifier, Modify};
 use wilbur_routing::{MethodFilter, Routing};
 
@@ -415,7 +415,7 @@ impl<'js> Routing<reggie::Body, JsRouteContext> for Router<'js> {
     type Handler = JsHandler<'js>;
 
     fn modifier<M: Modifier<reggie::Body, JsRouteContext> + 'static>(&mut self, modifier: M) {
-        todo!()
+        self.modifiers.push(modifier_box(modifier));
     }
 
     fn route<T>(
@@ -436,7 +436,7 @@ impl<'js> Routing<reggie::Body, JsRouteContext> for Router<'js> {
     where
         M: Middleware<reggie::Body, JsRouteContext, Self::Handler> + 'static,
     {
-        todo!()
+        todo!("Middlewares")
     }
 }
 

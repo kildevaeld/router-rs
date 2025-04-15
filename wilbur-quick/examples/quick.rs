@@ -1,17 +1,9 @@
 use klaver::{Options, RuntimeError};
-use wilbur_quick::{App, AppBuilder, InitModule, Router};
-
-struct Move<'js> {
-    router: Router<'js>,
-}
-
-unsafe impl<'js> Send for Move<'js> {}
-
-unsafe impl<'js> Sync for Move<'js> {}
+use wilbur_quick::{App, AppBuilder, InitModule, InitPath, Router};
 
 fn main() {
     futures::executor::block_on(async move {
-        wrap().await;
+        wrap().await.unwrap();
     })
 }
 
@@ -24,11 +16,13 @@ async fn wrap() -> Result<(), RuntimeError> {
 
     builder.add_init(InitModule(wilbur_cookies::CookiesModule));
 
-    let vm = Options::default().build().await.unwrap();
+    builder.add_init(InitPath("./wilbur-quick/examples/app.js"));
+
+    let vm = Options::default().search_path(".").build().await.unwrap();
 
     klaver::async_with!(vm => |ctx| {
 
-        builder.build(ctx).await;
+        builder.build(ctx).await?;
 
         Ok(())
     })

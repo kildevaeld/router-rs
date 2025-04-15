@@ -1,5 +1,5 @@
 use heather::{HSend, Hrc};
-use rquickjs::{Ctx, class::Trace};
+use rquickjs::{Class, Ctx, class::Trace};
 use wilbur_container::{Extensible, ExtensibleMut, Extensions, modules::BuildContext};
 use wilbur_core::Error;
 use wilbur_routing::{RouterBuildContext, Routing};
@@ -7,18 +7,20 @@ use wilbur_routing::{RouterBuildContext, Routing};
 use crate::router::{JsHandler, Router};
 
 pub struct JsBuildContext<'js> {
-    router: Router<'js>,
-    extensions: Extensions,
+    pub(crate) router: Class<'js, Router<'js>>,
+    pub(crate) extensions: Extensions,
     ctx: Ctx<'js>,
 }
 
 impl<'js> JsBuildContext<'js> {
-    pub fn new(ctx: Ctx<'js>) -> Self {
-        JsBuildContext {
-            router: Router::new(),
+    pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<Self> {
+        let router = Class::instance(ctx.clone(), Router::new())?;
+
+        Ok(JsBuildContext {
+            router,
             extensions: Default::default(),
             ctx,
-        }
+        })
     }
 }
 
@@ -29,13 +31,13 @@ impl<'js> core::ops::Deref for JsBuildContext<'js> {
     }
 }
 
-impl<'js> Extensible for JsBuildContext<'js> {
+impl Extensible for JsBuildContext<'_> {
     fn extensions(&self) -> &Extensions {
         &self.extensions
     }
 }
 
-impl<'js> ExtensibleMut for JsBuildContext<'js> {
+impl ExtensibleMut for JsBuildContext<'_> {
     fn extensions_mut(&mut self) -> &mut Extensions {
         &mut self.extensions
     }
@@ -44,12 +46,21 @@ impl<'js> ExtensibleMut for JsBuildContext<'js> {
 impl<'js> BuildContext for JsBuildContext<'js> {
     type Context = JsRouteContext;
 
-    type Output = (Router<'js>, Self::Context);
+    type Output = (Class<'js, Router<'js>>, Self::Context);
 
     type Error = Error;
 
     fn build(self) -> impl Future<Output = Result<Self::Output, Self::Error>> + HSend {
-        async move { todo!() }
+        async move {
+            //
+
+            Ok((
+                self.router,
+                JsRouteContext {
+                    extensions: self.extensions.into(),
+                },
+            ))
+        }
     }
 }
 
@@ -60,7 +71,7 @@ impl<'js> Routing<reggie::Body, JsRouteContext> for JsBuildContext<'js> {
         &mut self,
         modifier: M,
     ) {
-        self.router.modifier(modifier);
+        self.router.borrow_mut().modifier(modifier);
     }
 
     fn route<T>(
@@ -72,14 +83,14 @@ impl<'js> Routing<reggie::Body, JsRouteContext> for JsBuildContext<'js> {
     where
         T: wilbur_core::Handler<reggie::Body, JsRouteContext> + 'static,
     {
-        self.router.route(method, path, handler)
+        self.router.borrow_mut().route(method, path, handler)
     }
 
     fn middleware<M>(&mut self, middleware: M) -> Result<(), wilbur_routing::RouteError>
     where
         M: wilbur_core::Middleware<reggie::Body, JsRouteContext, Self::Handler> + 'static,
     {
-        self.router.middleware(middleware)
+        self.router.borrow_mut().middleware(middleware)
     }
 }
 
