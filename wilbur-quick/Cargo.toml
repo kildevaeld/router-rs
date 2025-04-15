@@ -31,3 +31,4 @@ heather.workspace = true
 [dev-dependencies]
 klaver = { git = "https://github.com/fairy-render/klaver" }
 wilbur-cookies = { path = "../wilbur-cookies" }
+futures = { version = "0.3" }

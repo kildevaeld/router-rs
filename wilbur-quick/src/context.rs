@@ -1,7 +1,5 @@
-use std::convert::Infallible;
-
 use heather::{HSend, Hrc};
-use rquickjs::class::Trace;
+use rquickjs::{Ctx, class::Trace};
 use wilbur_container::{Extensible, ExtensibleMut, Extensions, modules::BuildContext};
 use wilbur_core::Error;
 use wilbur_routing::{RouterBuildContext, Routing};
@@ -11,14 +9,23 @@ use crate::router::{JsHandler, Router};
 pub struct JsBuildContext<'js> {
     router: Router<'js>,
     extensions: Extensions,
+    ctx: Ctx<'js>,
 }
 
-impl<'js> Default for JsBuildContext<'js> {
-    fn default() -> Self {
+impl<'js> JsBuildContext<'js> {
+    pub fn new(ctx: Ctx<'js>) -> Self {
         JsBuildContext {
             router: Router::new(),
             extensions: Default::default(),
+            ctx,
         }
+    }
+}
+
+impl<'js> core::ops::Deref for JsBuildContext<'js> {
+    type Target = Ctx<'js>;
+    fn deref(&self) -> &Self::Target {
+        &self.ctx
     }
 }
 
@@ -53,7 +60,7 @@ impl<'js> Routing<reggie::Body, JsRouteContext> for JsBuildContext<'js> {
         &mut self,
         modifier: M,
     ) {
-        todo!()
+        self.router.modifier(modifier);
     }
 
     fn route<T>(
@@ -65,14 +72,14 @@ impl<'js> Routing<reggie::Body, JsRouteContext> for JsBuildContext<'js> {
     where
         T: wilbur_core::Handler<reggie::Body, JsRouteContext> + 'static,
     {
-        todo!()
+        self.router.route(method, path, handler)
     }
 
     fn middleware<M>(&mut self, middleware: M) -> Result<(), wilbur_routing::RouteError>
     where
         M: wilbur_core::Middleware<reggie::Body, JsRouteContext, Self::Handler> + 'static,
     {
-        todo!()
+        self.router.middleware(middleware)
     }
 }
 
