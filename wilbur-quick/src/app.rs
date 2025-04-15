@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use heather::HBoxFuture;
 use rquickjs::{Class, Ctx};
 use rquickjs_util::RuntimeError;
@@ -76,14 +78,14 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct InitList {
-    inits: Vec<Box<dyn Init + Send + Sync>>,
+    inits: Vec<Arc<dyn Init + Send + Sync>>,
 }
 
 impl InitList {
     pub fn add_init<I: Init + Send + Sync + 'static>(&mut self, init: I) {
-        self.inits.push(Box::new(init));
+        self.inits.push(Arc::from(init));
     }
 
     pub async fn build<'js>(&self, ctx: Ctx<'js>) {
