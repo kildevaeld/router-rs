@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::TypeId, collections::BTreeMap, sync::Arc};
 
 use heather::HBoxFuture;
 use rquickjs::{CatchResultExt, Class, Ctx, Function, Value};
@@ -7,6 +7,8 @@ use wilbur_container::modules::{BuildContext, Module};
 
 use crate::{
     JsApp,
+    app::App,
+    augment::{AugmentBox, Augmentation, DynAugmentation},
     context::{JsBuildContext, JsRouteContext},
     router::Router,
 };
@@ -41,7 +43,6 @@ where
 
 pub struct AppBuildCtx<'js> {
     modules: Vec<Box<dyn ModuleInit<'js> + 'js>>,
-    builder: Option<rquickjs_modules::Builder>,
 }
 
 impl<'js> AppBuildCtx<'js> {
@@ -51,16 +52,6 @@ impl<'js> AppBuildCtx<'js> {
         T::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
     {
         self.modules.push(Box::new(Wrapper(module)));
-    }
-
-    pub fn register_module<T: rquickjs_modules::ModuleInfo>(&mut self) -> &mut Self {
-        self.mutate(|ctx| ctx.module::<T>());
-        self
-    }
-
-    pub fn register_globals<T: rquickjs_modules::GlobalInfo>(&mut self) -> &mut Self {
-        self.mutate(|ctx| ctx.global::<T>());
-        self
     }
 
     pub async fn build(
@@ -74,17 +65,6 @@ impl<'js> AppBuildCtx<'js> {
         }
 
         Ok(context.build().await.unwrap())
-    }
-
-    fn mutate<T>(&mut self, func: T)
-    where
-        T: FnOnce(rquickjs_modules::Builder) -> rquickjs_modules::Builder,
-    {
-        let builder = self.builder.take().unwrap();
-
-        let builder = func(builder);
-
-        self.builder = Some(builder);
     }
 }
 
@@ -101,9 +81,20 @@ where
     }
 }
 
-#[derive(Default, Clone)]
 pub struct AppBuilder {
     inits: Vec<Arc<dyn Init + Send + Sync>>,
+    builder: Option<rquickjs_modules::Builder>,
+    augmentations: BTreeMap<TypeId, Vec<Box<dyn DynAugmentation<JsRouteContext>>>>,
+}
+
+impl Default for AppBuilder {
+    fn default() -> Self {
+        AppBuilder {
+            inits: Default::default(),
+            builder: Some(Default::default()),
+            augmentations: Default::default(),
+        }
+    }
 }
 
 impl AppBuilder {
@@ -111,23 +102,76 @@ impl AppBuilder {
         self.inits.push(Arc::from(init));
     }
 
-    pub async fn build<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Class<'js, JsApp<'js>>> {
-        let mut app = AppBuildCtx {
-            modules: Default::default(),
-            builder: Some(rquickjs_modules::Builder::new()),
-        };
-        for init in &self.inits {
-            init.init(&mut app);
+    pub fn build(mut self) -> App {
+        let env = self
+            .builder
+            .take()
+            .unwrap()
+            .global::<klaver_wintercg::Globals>()
+            .search_path(".")
+            .build();
+        App {
+            inits: self.inits.into(),
+            env,
+            augmentations: self.augmentations,
         }
-
-        let (router, context) = app.build(ctx.clone()).await?;
-
-        let router = router.borrow_mut().build();
-
-        let instance = Class::instance(ctx.clone(), JsApp { router, context })?;
-
-        Ok(instance)
     }
+
+    pub fn register_module<T: rquickjs_modules::ModuleInfo>(&mut self) -> &mut Self {
+        self.mutate(|ctx| ctx.module::<T>());
+        self
+    }
+
+    pub fn register_globals<T: rquickjs_modules::GlobalInfo>(&mut self) -> &mut Self {
+        self.mutate(|ctx| ctx.global::<T>());
+        self
+    }
+
+    pub fn register_augmentation<T, V>(&mut self, ext: T) -> &mut Self
+    where
+        T: Augmentation<JsRouteContext, V> + Send + Sync + 'static,
+        V: 'static,
+    {
+        let id = TypeId::of::<V>();
+
+        self.augmentations
+            .entry(id)
+            .or_default()
+            .push(Box::new(AugmentBox::new(ext)));
+
+        self
+    }
+
+    fn mutate<T>(&mut self, func: T)
+    where
+        T: FnOnce(rquickjs_modules::Builder) -> rquickjs_modules::Builder,
+    {
+        let builder = self.builder.take().unwrap();
+
+        let builder = func(builder);
+
+        self.builder = Some(builder);
+    }
+}
+
+pub async fn build<'js>(
+    inits: &[Arc<dyn Init + Send + Sync>],
+    ctx: Ctx<'js>,
+) -> rquickjs::Result<Class<'js, JsApp<'js>>> {
+    let mut app = AppBuildCtx {
+        modules: Default::default(),
+    };
+    for init in inits {
+        init.init(&mut app);
+    }
+
+    let (router, context) = app.build(ctx.clone()).await?;
+
+    let router = router.borrow_mut().build();
+
+    let instance = Class::instance(ctx.clone(), JsApp { router, context })?;
+
+    Ok(instance)
 }
 
 pub struct InitModule<T>(pub T);
