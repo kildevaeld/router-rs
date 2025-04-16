@@ -1,3 +1,4 @@
+use heather::HSend;
 use wilbur_container::modules::Module;
 use wilbur_container::prelude::*;
 use wilbur_routing::{RouterBuildContext, Routing};
@@ -12,7 +13,9 @@ pub struct SessionModule {
 
 impl<C: RouterBuildContext> Module<C> for SessionModule
 where
-    C: RouterBuildContext + Routing<C::Context, C::Body>,
+    C: RouterBuildContext + Routing<C::Context, C::Body> + HSend,
+    C::Context: HSend,
+    C::Body: HSend,
 {
     type Error = std::convert::Infallible;
 

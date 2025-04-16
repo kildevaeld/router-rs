@@ -39,7 +39,7 @@ pub trait Container {
     ///
     /// # Returns
     /// An `Option` containing the removed value of type `T`, or `None` if not found.
-    fn remove<T>(&mut self) -> Option<T>
+    fn remove<T: HSendSync>(&mut self) -> Option<T>
     where
         T: 'static;
 
@@ -97,7 +97,7 @@ where
 
     fn remove<T>(&mut self) -> Option<T>
     where
-        T: 'static,
+        T: HSendSync + 'static,
     {
         self.extensions_mut().remove()
     }

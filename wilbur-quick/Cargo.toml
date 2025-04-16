@@ -3,6 +3,12 @@ name = "wilbur-quick"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["send"]
+send = ["klaver/pool"]
+serve = ["tokio", "hyper-util", "hyper"]
+hyper = ["dep:hyper"]
+
 [dependencies]
 wilbur-core = { path = "../wilbur-core" }
 wilbur-routing = { path = "../wilbur-routing" }
@@ -27,8 +33,17 @@ http-body-util.workspace = true
 routing = { path = "../routing", features = ["router"] }
 heather.workspace = true
 
+tokio = { version = "1", features = ["net", "rt"], optional = true }
+hyper = { version = "1", features = ["server", "http1"], optional = true }
+hyper-util = { version = "0.1", features = ["full"], optional = true }
+
 
 [dev-dependencies]
+hyper-util = { version = "0.1", features = ["full"] }
 klaver = { git = "https://github.com/fairy-render/klaver" }
 wilbur-cookies = { path = "../wilbur-cookies" }
 futures = { version = "0.3" }
+tokio = { version = "1", features = ["net", "rt", "macros"] }
+hyper = { version = "1", features = ["server", "http1"] }
+reggie = { git = "https://github.com/fairy-render/reggie", features = ["json"] }
+color-eyre = { version = "*" }

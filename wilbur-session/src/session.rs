@@ -1,5 +1,5 @@
 use arc_swap::{ArcSwap, ArcSwapAny};
-use heather::HBoxFuture;
+use heather::{HBoxFuture, HSend, HSendSync};
 use std::sync::Arc;
 use uuid::Uuid;
 use vaerdi::{Map, Value, hashbrown::hash_map::Iter};
@@ -113,7 +113,7 @@ impl Session {
     }
 }
 
-impl<C: Extensible> FromRequestParts<C> for Session {
+impl<C: Extensible + HSendSync> FromRequestParts<C> for Session {
     type Future<'a>
         = HBoxFuture<'a, Result<Session, Error>>
     where
@@ -146,7 +146,7 @@ impl<C: Extensible> FromRequestParts<C> for Session {
     }
 }
 
-impl<B: 'static, C: Extensible> FromRequest<B, C> for Session {
+impl<B: 'static + HSend, C: Extensible + HSendSync> FromRequest<B, C> for Session {
     type Future<'a>
         = HBoxFuture<'a, Result<Session, Error>>
     where

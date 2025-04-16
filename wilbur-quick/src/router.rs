@@ -1,5 +1,6 @@
 use std::{collections::HashMap, pin::Pin, rc::Rc};
 
+use heather::HBoxFuture;
 use http::{Request, Response};
 use http_body_util::BodyExt;
 use reggie::RequestExt;
@@ -156,7 +157,7 @@ impl<'js> Handler<reggie::Body, JsRouteContext> for JsHandler<'js> {
     type Response = Response<reggie::Body>;
 
     type Future<'a>
-        = Pin<Box<dyn Future<Output = Result<Self::Response, Error>> + 'a>>
+        = HBoxFuture<'a, Result<Self::Response, Error>>
     where
         Self: 'a,
         JsRouteContext: 'a;
@@ -547,6 +548,31 @@ pub struct JsApp<'js> {
 
 unsafe impl<'js> JsLifetime<'js> for JsApp<'js> {
     type Changed<'to> = JsApp<'to>;
+}
+
+impl<'js> JsApp<'js> {
+    pub async fn handle(
+        &self,
+        ctx: Ctx<'js>,
+        req: Request<reggie::Body>,
+    ) -> rquickjs::Result<Response<reggie::Body>> {
+        self.router.handle(ctx, req, self.context.clone()).await
+    }
+}
+
+#[rquickjs::methods]
+impl<'js> JsApp<'js> {
+    pub async fn handle_js(
+        &self,
+        ctx: Ctx<'js>,
+        req: Class<'js, klaver_wintercg::http::Request<'js>>,
+    ) -> rquickjs::Result<klaver_wintercg::http::Response<'js>> {
+        let (req, _) = req.borrow_mut().into_request(ctx.clone()).await?;
+
+        let resp = self.handle(ctx.clone(), req).await?;
+
+        klaver_wintercg::http::Response::from_response(ctx, "", resp)
+    }
 }
 
 pub fn compose<'js>(middlewares: &[JsMiddleware<'js>], task: JsHandler<'js>) -> JsHandler<'js> {

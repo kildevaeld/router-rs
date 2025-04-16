@@ -1,6 +1,6 @@
 use core::mem;
 use headers::{CacheControl, HeaderMapExt};
-use heather::HBoxFuture;
+use heather::{HBoxFuture, HSend, HSendSync};
 use keyval::Cbor;
 use std::time::{Duration, Instant};
 use wilbur_core::{
@@ -71,8 +71,10 @@ impl<B, C, H> Middleware<B, C, H> for CacheMiddlware
 where
     H: Handler<B, C> + Clone + 'static,
     H::Response: IntoResponse<B>,
-    B: From<Bytes> + HttpBody + 'static,
+    B: From<Bytes> + HttpBody + 'static + HSend,
+    B::Data: HSend,
     B::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
+    C: HSendSync + 'static,
 {
     type Handle = CacheMiddlwareHandler<H>;
 
@@ -95,8 +97,10 @@ impl<B, C, H> Handler<B, C> for CacheMiddlwareHandler<H>
 where
     H: Handler<B, C> + Clone + 'static,
     H::Response: IntoResponse<B>,
-    B: From<Bytes> + HttpBody + 'static,
+    B: From<Bytes> + HttpBody + 'static + HSend,
     B::Error: Into<Box<dyn core::error::Error + Send + Sync>>,
+    B::Data: HSend,
+    C: HSendSync + 'static,
 {
     type Response = Response<B>;
 

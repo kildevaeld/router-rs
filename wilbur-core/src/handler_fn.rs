@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use heather::{HBoxFuture, HSend};
+use heather::{HBoxFuture, HSend, HSendSync};
 use http::{Request, Response};
 
 use crate::{Error, FromRequest, Handler, IntoResponse};
@@ -41,10 +41,13 @@ unsafe impl<T, I, B, C> Sync for FuncHandler<T, I, B, C> where T: Sync {}
 
 impl<B, C, T, I> Handler<B, C> for FuncHandler<T, I, B, C>
 where
-    T: Func<B, C, I>,
+    T: Func<B, C, I> + HSendSync,
+    T::Future: HSend,
     <T::Future as Future>::Output: IntoResponse<B> + HSend,
     I: FromRequest<B, C>,
-    B: 'static,
+    for<'a> I::Future<'a>: HSend,
+    B: 'static + HSend,
+    C: HSendSync,
 {
     type Response = Response<B>;
 

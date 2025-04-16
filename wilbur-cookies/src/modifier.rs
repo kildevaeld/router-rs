@@ -6,7 +6,7 @@ use wilbur_core::{Modifier, Modify};
 
 pub struct CookiesJarModifier;
 
-impl<B, C> Modifier<B, C> for CookiesJarModifier {
+impl<B: HSend, C> Modifier<B, C> for CookiesJarModifier {
     type Modify = ModifyCookie;
 
     fn before<'a>(
@@ -26,7 +26,7 @@ pub struct ModifyCookie {
     cookie_jar: CookieJar,
 }
 
-impl<B, C> Modify<B, C> for ModifyCookie {
+impl<B: HSend, C> Modify<B, C> for ModifyCookie {
     fn modify<'a>(
         self,
         response: &'a mut Response<B>,

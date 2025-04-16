@@ -1,4 +1,4 @@
-use heather::HBoxFuture;
+use heather::{HBoxFuture, HSend, HSendSync};
 use http::{HeaderMap, Request, Uri, request::Parts};
 
 use crate::Error;
@@ -40,9 +40,10 @@ macro_rules! from_request {
     ($first: ident) => {
         impl<B, C, $first> FromRequest<B, C> for ($first,)
         where
-            C: 'static,
-            B: 'static,
+            C: 'static + HSendSync,
+            B: 'static + HSend,
             $first: FromRequest<B, C>,
+            for<'a> $first::Future<'a>: HSend,
         {
             type Future<'a> = HBoxFuture<'a, Result<($first,), Error>>;
 
@@ -56,8 +57,9 @@ macro_rules! from_request {
 
         impl<C, $first> FromRequestParts<C> for ($first,)
         where
-            C: 'static,
+            C: 'static + HSendSync,
             $first: FromRequestParts<C>,
+            for <'a> $first::Future<'a>: HSend,
         {
             type Future<'a> = HBoxFuture<'a, Result<($first,), Error>>;
 
@@ -74,11 +76,13 @@ macro_rules! from_request {
 
         impl<B, C, $first, $($rest),*> FromRequest<B, C> for ($($rest),+,$first)
         where
-            C: 'static,
-            B: 'static,
-            $first: FromRequest<B, C>,
+            C: 'static + HSendSync,
+            B: 'static + HSend,
+            $first: FromRequest<B, C> + HSend,
+            for<'a> $first::Future<'a>: HSend,
             $(
-                $rest: FromRequestParts<C>
+                $rest: FromRequestParts<C> + HSend,
+                for<'a> $rest::Future<'a>: HSend
             ),+
         {
             type Future<'a> = HBoxFuture<'a, Result<($($rest),+,$first), Error>>;
@@ -102,10 +106,12 @@ macro_rules! from_request {
 
         impl< C, $first, $($rest),*> FromRequestParts<C> for ($($rest),+,$first)
         where
-            C: 'static,
-            $first: FromRequestParts<C>,
+            C: 'static + HSendSync,
+            $first: FromRequestParts<C> + HSend,
+            for<'a> $first::Future<'a>: HSend,
             $(
-                $rest: FromRequestParts<C>
+                $rest: FromRequestParts<C> + HSend,
+                for<'a> $rest::Future<'a>: HSend
             ),+
         {
             type Future<'a> = HBoxFuture<'a, Result<($($rest),+,$first), Error>>;

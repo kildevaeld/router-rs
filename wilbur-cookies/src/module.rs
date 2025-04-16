@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 
+use heather::HSend;
 use wilbur_container::modules::Module;
 use wilbur_routing::{RouterBuildContext, Routing};
 
@@ -13,7 +14,8 @@ pub struct CookiesModule;
 
 impl<C> Module<C> for CookiesModule
 where
-    C: RouterBuildContext + Routing<C::Body, C::Context>,
+    C: RouterBuildContext + Routing<C::Body, C::Context> + HSend,
+    C::Body: HSend,
 {
     type Error = Infallible;
 

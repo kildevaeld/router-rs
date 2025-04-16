@@ -15,7 +15,7 @@ impl Default for SessionModifier {
     }
 }
 
-impl<B, C> Modifier<B, C> for SessionModifier {
+impl<B: HSend, C> Modifier<B, C> for SessionModifier {
     type Modify = ModifySession;
 
     fn before<'a>(
@@ -50,7 +50,7 @@ pub struct ModifySession {
     key: Arc<Key>,
 }
 
-impl<B, C> Modify<B, C> for ModifySession {
+impl<B: HSend, C> Modify<B, C> for ModifySession {
     fn modify<'a>(
         self,
         response: &'a mut Response<B>,

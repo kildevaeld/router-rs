@@ -29,7 +29,7 @@ pub type BoxModule<'a, C> = Box<dyn DynModule<C> + 'a>;
 
 impl<C> Module<C> for BoxModule<'static, C>
 where
-    C: BuildContext,
+    C: BuildContext + HSend,
 {
     type Error = Box<dyn core::error::Error + Send + Sync>;
 
@@ -46,7 +46,7 @@ pub struct ModuleBox<T>(T);
 impl<T> ModuleBox<T> {
     pub fn new<C>(module: T) -> Box<dyn DynModule<C>>
     where
-        C: BuildContext,
+        C: BuildContext + HSend,
         T: Module<C> + 'static,
         T::Error: Into<Box<dyn core::error::Error + Send + Sync>> + 'static,
     {
@@ -56,7 +56,7 @@ impl<T> ModuleBox<T> {
 
 impl<C, T> DynModule<C> for ModuleBox<T>
 where
-    C: BuildContext,
+    C: BuildContext + HSend,
     T: Module<C> + 'static,
     T::Error: Into<Box<dyn core::error::Error + Send + Sync>> + 'static,
 {
@@ -74,6 +74,7 @@ pub struct Builder<C: BuildContext> {
 
 impl<C: BuildContext> Builder<C>
 where
+    C: HSend,
     C::Error: From<Box<dyn core::error::Error + Send + Sync>>,
 {
     pub fn new() -> Self {
