@@ -2,16 +2,7 @@
 
 resolver = "2"
 
-members = [
-    "routing",
-    "wilbur-core",
-    "wilbur-routing",
-    "wilbur-container",
-    "wilbur-cache",
-    "wilbur-cookies",
-    "wilbur-session",
-    "wilbur-app", "wilbur-quick",
-]
+members = ["routing"]
 
 
 [workspace.dependencies]
