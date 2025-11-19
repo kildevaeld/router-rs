@@ -6,19 +6,19 @@ version = "0.3.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 default = []
-std = ["udled/std"]
+std = []
 router = ["bitflags", "http"]
 
 [dependencies]
-udled = { version = "0.4" }
-udled-tokenizers = { version = "0.3" }
+udled = { version = "0.6" }
+udled-tokenizers = { version = "0.5" }
 
 bitflags = { version = "2", optional = true }
 http = { version = "1", optional = true }
 
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.7"
 
 [[bench]]
 harness = false

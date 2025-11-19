@@ -1,37 +1,30 @@
-use alloc::borrow::Cow;
-
 use alloc::vec::Vec;
 use udled::{
     any,
-    token::{AlphaNumeric, Opt},
-    Input, Span, Tokenizer, WithSpan,
+    tokenizers::{AlphaNumeric, Opt, Puntuated},
+    AsChar, AsSlice, AsStr, Buffer, Input, Tokenizer, TokenizerExt, EOF,
 };
-use udled_tokenizers::{Ident, Punctuated};
+use udled_tokenizers::Ident;
 
 use crate::{Segment, Segments};
 
 pub fn parse<'a>(input: &'a str) -> Result<Segments<'a>, udled::Error> {
     let mut input = Input::new(input);
 
-    input.eat(Opt('/'))?;
+    input.eat(Opt::new('/'))?;
 
-    if input.eos() {
+    if input.is(EOF) {
         return Ok(Segments::default());
     }
 
-    let mut segments = if input.peek(SegmentParser)? {
-        input
-            .parse(Punctuated::new(SegmentParser, '/').with_trailing(true))?
-            .value
-    } else {
-        Vec::default()
-    };
+    let mut segments = input
+        .parse(Puntuated::new(SegmentParser, '/').optional())?
+        .map(|m| m.into_items().collect::<Vec<_>>())
+        .unwrap_or_default();
 
-    if input.eos() {
-        return Ok(segments.into());
-    }
+    input.eat('/'.optional())?;
 
-    if input.peek('*')? {
+    if input.is('*') {
         let (_, name) = input.parse(('*', Ident))?;
         segments.push(Segment::Star(name.value.into()));
     }
@@ -41,71 +34,30 @@ pub fn parse<'a>(input: &'a str) -> Result<Segments<'a>, udled::Error> {
 
 struct SegmentParser;
 
-impl Tokenizer for SegmentParser {
-    type Token<'a> = Segment<'a>;
+impl<'input, B> Tokenizer<'input, B> for SegmentParser
+where
+    B: Buffer<'input>,
+    B::Item: AsChar,
+    B::Source: AsSlice<'input>,
+    <B::Source as AsSlice<'input>>::Slice: AsStr<'input>,
+{
+    type Token = Segment<'input>;
 
     fn to_token<'a>(
         &self,
-        reader: &mut udled::Reader<'_, 'a>,
-    ) -> Result<Self::Token<'a>, udled::Error> {
-        if reader.peek(ContantSegmentParser)? {
-            reader.parse(ContantSegmentParser)
+        reader: &mut udled::Reader<'_, 'input, B>,
+    ) -> Result<Self::Token, udled::Error> {
+        if reader.is(':') {
+            let (_, ident) = reader.parse((':', Ident))?;
+            Ok(Segment::Parameter(ident.value.as_str().into()))
         } else {
-            reader.parse(ParamSegmentParser)
+            let path = reader.parse(any!(AlphaNumeric, '_', '.', '-', '~').many().slice())?;
+            Ok(Segment::Constant(path.value.as_str().into()))
         }
     }
 
-    fn peek(&self, reader: &mut udled::Reader<'_, '_>) -> Result<bool, udled::Error> {
-        Ok(reader.peek(':')? || reader.peek(Ident)?)
-    }
-}
-
-struct ContantSegmentParser;
-
-impl Tokenizer for ContantSegmentParser {
-    type Token<'a> = Segment<'a>;
-
-    fn to_token<'a>(
-        &self,
-        reader: &mut udled::Reader<'_, 'a>,
-    ) -> Result<Self::Token<'a>, udled::Error> {
-        let parser = any!(AlphaNumeric, '_', '.', '-', '~');
-
-        let start = reader.parse(&parser)?.span();
-        loop {
-            if reader.eof() {
-                break;
-            }
-
-            if !reader.peek(&parser)? {
-                break;
-            }
-
-            reader.eat(&parser)?;
-        }
-
-        let span = Span::new(start.start, reader.position());
-
-        Ok(Segment::Constant(Cow::Borrowed(
-            span.slice(reader.source()).unwrap(),
-        )))
-    }
-}
-
-struct ParamSegmentParser;
-
-impl Tokenizer for ParamSegmentParser {
-    type Token<'a> = Segment<'a>;
-
-    fn to_token<'a>(
-        &self,
-        reader: &mut udled::Reader<'_, 'a>,
-    ) -> Result<Self::Token<'a>, udled::Error> {
-        reader.eat(":")?;
-
-        let name = reader.parse(Ident)?;
-
-        Ok(Segment::Parameter(Cow::Borrowed(name.as_str())))
+    fn peek(&self, reader: &mut udled::Reader<'_, 'input, B>) -> bool {
+        reader.is(':') || reader.is(Ident)
     }
 }
 

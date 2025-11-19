@@ -1,6 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use routing::{match_path, parse, Params, ParseError, PathRouter, Segment, Segments};
-use std::{collections::BTreeMap, vec::Vec};
+use std::{collections::BTreeMap, hint::black_box, vec::Vec};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Route<'a> {
