@@ -283,15 +283,19 @@ impl<H> PathRouter<H> {
 
     pub fn map<F, V>(self, mut mapper: F) -> PathRouter<V>
     where
-        F: FnMut(H) -> V,
+        F: FnMut(H, Option<&Segments<'_>>) -> V,
     {
         PathRouter {
-            arena: self.arena.map(move |m| Node {
-                constants: m.constants,
-                handle: m.handle.map(|m| mapper(m)),
-                catchall: m.catchall,
-                wildcard: m.wildcard,
-                segments: m.segments,
+            arena: self.arena.map(move |m| {
+                let segments = m.segments;
+                let handle = m.handle.map(|h| mapper(h, segments.as_ref()));
+                Node {
+                    constants: m.constants,
+                    handle,
+                    catchall: m.catchall,
+                    wildcard: m.wildcard,
+                    segments,
+                }
             }),
             root: self.root,
         }

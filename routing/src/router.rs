@@ -5,7 +5,7 @@ use alloc::{vec, vec::Vec};
 
 use http::Method;
 
-use crate::{AsSegments, Params, PathRouter};
+use crate::{AsSegments, Params, PathRouter, Segments};
 
 #[derive(Debug)]
 pub struct RouteError {
@@ -113,15 +113,15 @@ impl<H> Router<H> {
 
     pub fn map<T, U>(self, mapper: T) -> Router<U>
     where
-        T: Fn(H) -> U + Copy,
+        T: Fn(H, Option<&Segments<'_>>) -> U + Copy,
     {
         Router {
-            inner: self.inner.map(move |route| Route {
+            inner: self.inner.map(move |route, segments| Route {
                 entries: route
                     .entries
                     .into_iter()
                     .map(move |m| Entry {
-                        handler: mapper(m.handler),
+                        handler: mapper(m.handler, segments),
                         method: m.method,
                     })
                     .collect(),
