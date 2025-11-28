@@ -51,6 +51,25 @@ impl MethodFilter {
     }
 }
 
+impl fmt::Display for MethodFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match *self {
+                MethodFilter::GET => "GET",
+                MethodFilter::POST => "POST",
+                MethodFilter::PUT => "PUT",
+                MethodFilter::PATCH => "PATCH",
+                MethodFilter::DELETE => "DELETE",
+                MethodFilter::HEAD => "HEAD",
+                MethodFilter::OPTIONS => "OPTIONS",
+                _ => "MULTIPLE",
+            }
+        )
+    }
+}
+
 impl FromStr for MethodFilter {
     type Err = RouteError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -186,11 +205,11 @@ impl<H> Router<H> {
         path: &str,
         method: MethodFilter,
         params: &mut P,
-    ) -> Option<&H> {
+    ) -> Option<(&H, MethodFilter)> {
         self.inner.match_path(path, params).and_then(|m| {
             m.entries.iter().find_map(|m| {
                 if m.method.contains(method) {
-                    Some(&m.handler)
+                    Some((&m.handler, m.method))
                 } else {
                     None
                 }
@@ -220,7 +239,7 @@ pub struct RouteMatchIter<'a, H> {
 }
 
 impl<'a, H> Iterator for RouteMatchIter<'a, H> {
-    type Item = &'a H;
+    type Item = (&'a H, MethodFilter);
     fn next(&mut self) -> Option<Self::Item> {
         let Some(iter) = self.inner.as_mut() else {
             return None;
@@ -229,7 +248,7 @@ impl<'a, H> Iterator for RouteMatchIter<'a, H> {
         loop {
             let next = iter.next()?;
             if next.method.contains(self.method) {
-                return Some(&next.handler);
+                return Some((&next.handler, next.method));
             }
         }
     }
