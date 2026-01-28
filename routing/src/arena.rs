@@ -1,9 +1,12 @@
 use alloc::vec::Vec;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct Id(usize);
 
-#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Arena<T> {
     inner: Vec<T>,
 }
@@ -45,6 +48,10 @@ impl<T> Arena<T> {
 
     pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.inner.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
+        self.inner.iter_mut()
     }
 
     pub fn into_iter(self) -> alloc::vec::IntoIter<T> {

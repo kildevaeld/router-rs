@@ -7,6 +7,7 @@ use alloc::{
     vec::Vec,
 };
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct Route<'a, H> {
     pub segments: Segments<'a>,
@@ -36,12 +37,14 @@ impl<'a, H> Route<'a, H> {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 struct Named<H> {
     name: String,
     handle: H,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 struct Node<H> {
     constants: BTreeMap<String, Id>,
@@ -63,6 +66,7 @@ impl<H> Default for Node<H> {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct PathRouter<H> {
     arena: Arena<Node<H>>,

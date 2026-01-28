@@ -33,6 +33,7 @@ impl core::error::Error for RouteError {
 }
 
 bitflags::bitflags! {
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
     pub struct MethodFilter: u8 {
        const GET = 1 << 0;
@@ -103,17 +104,20 @@ impl From<Method> for MethodFilter {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct Entry<H> {
     pub method: MethodFilter,
     pub handler: H,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct Route<H> {
     pub entries: Vec<Entry<H>>,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct Router<H> {
     inner: PathRouter<Route<H>>,

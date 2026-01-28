@@ -16,6 +16,7 @@ mod segments;
 pub use udled::Error as ParseError;
 
 pub use self::{
+    arena::*,
     matcher::*,
     params::Params,
     parser::parse,

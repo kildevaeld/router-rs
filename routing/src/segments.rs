@@ -7,6 +7,7 @@ use alloc::{
     vec::{IntoIter, Vec},
 };
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Segments<'a>(pub(crate) Vec<Segment<'a>>);
 
